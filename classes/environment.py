@@ -4,10 +4,10 @@ from .boid import Boid
 from .obstacles import Wall
 
 
-class Environment:
+class Environment2D:
     """Environment that contains the population of boids, goals and obstacles."""
 
-    def __init__(self, boundary, ndim=None):
+    def __init__(self, boundary, vmax=None):
         self.population = []
 
         xmin, xmax, ymin, ymax = boundary
@@ -15,6 +15,9 @@ class Environment:
                           Wall((xmax, 0), (-1, 0), ndim=2),
                           Wall((0, ymin), (0, 1), ndim=2),
                           Wall((0, ymax), (0, -1), ndim=2)]
+
+        if vmax:
+            self.max_velocity = float(vmax)
 
     def update(self, dt):
         """
@@ -24,4 +27,4 @@ class Environment:
         for boid in self.population:
             boid.observe(self)
             boid.decide()
-            boid.move(dt)
+            boid.move(dt, self.max_velocity)
