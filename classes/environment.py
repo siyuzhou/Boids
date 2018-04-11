@@ -27,4 +27,7 @@ class Environment2D:
         for boid in self.population:
             boid.observe(self)
             boid.decide()
+        # Hold off moving agents until all have made decision.
+        # This ensures synchronous update.
+        for boid in self.population:
             boid.move(dt, self.max_velocity)

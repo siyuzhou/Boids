@@ -121,9 +121,9 @@ class Boid:
 
     def decide(self):
         """Make decision for acceleration."""
-        c1 = 0.3
+        c1 = 0.08
         c2 = 1
-        c3 = 0.5
+        c3 = 0.2
         c4 = 0.1
         self._acceleration = (c1 * self._rule1() +
                               c2 * self._rule2() +
