@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Jupyter Notebook
+*.ipynb
+
+# vscode
+.vscode
