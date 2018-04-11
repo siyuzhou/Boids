@@ -121,23 +121,23 @@ class Boid:
 
     def decide(self):
         """Make decision for acceleration."""
-        c1 = 0.05
+        c1 = 0.3
         c2 = 1
-        c3 = 0.2
+        c3 = 0.5
         c4 = 0.1
         self._acceleration = (c1 * self._rule1() +
                               c2 * self._rule2() +
                               c3 * self._rule3() +
                               c4 * self._rule4())
 
-    def _velocity_cap(self, max_velocity):
-        self._velocity[self._velocity > max_velocity] = max_velocity
-        self._velocity[self._velocity < max_velocity] = -max_velocity
+    def _velocity_cap(self, vmax):
+        self._velocity[self._velocity > vmax] = vmax
+        self._velocity[self._velocity < -vmax] = -vmax
 
-    def move(self, dt, max_velocity=None):
+    def move(self, dt, vmax=None):
         self._velocity += self._acceleration * dt
         # Velocity cap
-        if max_velocity:
-            self._velocity_cap(float(max_velocity))
+        if vmax:
+            self._velocity_cap(float(vmax))
 
         self._position += self._velocity * dt
