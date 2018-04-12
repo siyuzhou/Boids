@@ -23,12 +23,12 @@ def main():
 
     scat = ax.scatter([], [])
 
-    env = Environment2D((0, 100, 0, 100), vmax=20)
-    env.population = [Boid.random(100, 20, vision=20, comfort_zone=3, ndim=2)
+    env = Environment2D((0, 100, 0, 100))
+    env.population = [Boid.random(100, 10, vision=20, comfort_zone=3, speed_cap=20, ndim=2)
                       for _ in range(100)]
 
     anim = animation.FuncAnimation(fig, animate,
-                                   frames=2000, interval=20, blit=True, fargs=(scat, env))
+                                   frames=3000, interval=20, blit=True, fargs=(scat, env))
 
     anim.save('demo.gif', dpi=80, writer='imagemagick')
 

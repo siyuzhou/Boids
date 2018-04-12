@@ -4,7 +4,7 @@ import numpy as np
 class Boid:
     """Boid agent"""
 
-    def __init__(self, position, velocity, vision=None, comfort_zone=None, ndim=None):
+    def __init__(self, position, velocity, vision=None, comfort_zone=None, speed_cap=None, ndim=None):
         self._ndim = ndim if ndim else 3
 
         self.position = position
@@ -14,6 +14,9 @@ class Boid:
         self.vision = float(vision) if vision else np.inf
         self.comfort_zone = float(comfort_zone) if comfort_zone else 0.
 
+        # Max speed the boid can achieve.
+        self.speed_cap = float(speed_cap) if speed_cap else np.inf
+
         self.neighbors = []
         self.obstacles = []
 
@@ -21,11 +24,11 @@ class Boid:
         return 'Boid at position {} with velocity {}'.format(self.position, self.velocity)
 
     @classmethod
-    def random(cls, max_x, max_v, vision=None, comfort_zone=None, ndim=None):
+    def random(cls, max_x, max_v, vision=None, comfort_zone=None, speed_cap=None, ndim=None):
         position = np.random.uniform(0, max_x, ndim)
         velocity = np.random.uniform(-max_v, max_v, ndim)
 
-        return cls(position, velocity, vision, comfort_zone, ndim)
+        return cls(position, velocity, vision, comfort_zone, speed_cap, ndim)
 
     @property
     def position(self):
@@ -119,25 +122,33 @@ class Boid:
 
         return repel
 
+    def _goal(self):
+        """Individual goal of the boid."""
+        # As a simple example, suppose the boid would like to go as fast as it
+        # can in the current direction.
+        return self.velocity / np.linalg.norm(self.velocity)
+
     def decide(self):
         """Make decision for acceleration."""
         c1 = 0.08
         c2 = 1
-        c3 = 0.2
+        c3 = 0.3
         c4 = 0.1
+        g = 0.2
         self._acceleration = (c1 * self._rule1() +
                               c2 * self._rule2() +
                               c3 * self._rule3() +
-                              c4 * self._rule4())
+                              c4 * self._rule4() +
+                              g * self._goal())
 
-    def _velocity_cap(self, vmax):
-        self._velocity[self._velocity > vmax] = vmax
-        self._velocity[self._velocity < -vmax] = -vmax
+    def _speed_cap(self):
+        speed = np.linalg.norm(self._velocity)
+        if speed > self.speed_cap:
+            self._velocity = self._velocity / speed * self.speed_cap
 
-    def move(self, dt, vmax=None):
+    def move(self, dt):
         self._velocity += self._acceleration * dt
         # Velocity cap
-        if vmax:
-            self._velocity_cap(float(vmax))
+        self._speed_cap()
 
         self._position += self._velocity * dt
