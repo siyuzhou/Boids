@@ -7,9 +7,12 @@ class Boid:
     def __init__(self, position, velocity, vision=None, comfort_zone=None, speed_cap=None, ndim=None):
         self._ndim = ndim if ndim else 3
 
+        self._position = np.zeros(self._ndim)
+        self._velocity = np.zeros(self._ndim)
+        self._acceleration = np.zeros(self._ndim)
+
         self.position = position
         self.velocity = velocity
-        self._acceleration = np.zeros(ndim)
 
         self.vision = float(vision) if vision else np.inf
         self.comfort_zone = float(comfort_zone) if comfort_zone else 0.
@@ -36,9 +39,8 @@ class Boid:
 
     @position.setter
     def position(self, position):
-        self._position = np.array(position, dtype=float)
-        if self._position.shape != (self._ndim,):
-            raise ValueError('position must be of shape ({},)'.format(self._ndim))
+        self._position[:] = position[:]
+
 
     @property
     def velocity(self):
@@ -46,9 +48,7 @@ class Boid:
 
     @velocity.setter
     def velocity(self, velocity):
-        self._velocity = np.array(velocity, dtype=float)
-        if self._velocity.shape != (self._ndim,):
-            raise ValueError('velocity must be of shape ({},)'.format(self._ndim))
+        self._velocity[:] = velocity[:]
 
     def distance(self, other):
         """Distance from the other boid."""
@@ -59,7 +59,7 @@ class Boid:
         return self.distance(other) < self.vision
 
     def is_comfortable_with(self, other):
-        """Whether the boid feel too close with the other."""
+        """Whether the boid feels too close with the other."""
         return self.distance(other) > self.comfort_zone
 
     def observe(self, environment):
@@ -109,7 +109,7 @@ class Boid:
 
         return avg_velocity - self.velocity
 
-    def _rule4(self):
+    def _avoid_obstacles(self):
         """Boids try to avoid obstacles."""
         # Linear repulsive force model.
         proximity = 3  # Max distance at which the boid starts to react.
@@ -122,24 +122,27 @@ class Boid:
 
         return repel
 
-    def _goal(self):
+    def _steer_to_goal(self, goal):
         """Individual goal of the boid."""
         # As a simple example, suppose the boid would like to go as fast as it
-        # can in the current direction.
-        return self.velocity / np.linalg.norm(self.velocity)
+        # can in the current direction when no explicit goal is present.
+        if not goal:
+            return self.velocity / np.linalg.norm(self.velocity)
 
-    def decide(self):
+        return goal.position - self.position
+
+    def decide(self, goal):
         """Make decision for acceleration."""
         c1 = 0.08
         c2 = 1
         c3 = 0.3
         c4 = 0.1
-        g = 0.2
+        g = 0.01
         self._acceleration = (c1 * self._rule1() +
                               c2 * self._rule2() +
                               c3 * self._rule3() +
-                              c4 * self._rule4() +
-                              g * self._goal())
+                              c4 * self._avoid_obstacles() +
+                              g * self._steer_to_goal(goal))
 
     def _speed_cap(self):
         speed = np.linalg.norm(self._velocity)
