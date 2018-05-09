@@ -34,6 +34,10 @@ class Boid:
         return cls(position, velocity, vision, comfort_zone, speed_cap, ndim)
 
     @property
+    def ndim(self):
+        return self._ndim
+
+    @property
     def position(self):
         return self._position
 
@@ -131,18 +135,28 @@ class Boid:
 
         return goal.position - self.position
 
-    def decide(self, goal):
+    def decide(self, goals):
         """Make decision for acceleration."""
         c1 = 0.08
         c2 = 1
         c3 = 0.3
         c4 = 0.1
         g = 0.01
+
+        goal_steering = np.zeros(self.ndim)
+        squared_norm = 0
+
+        for goal in goals:
+            goal_steering += self._steer_to_goal(goal) * goal.priority
+            squared_norm += goal.priority ** 2
+
+        goal_steering /= np.sqrt(squared_norm)
+
         self._acceleration = (c1 * self._rule1() +
                               c2 * self._rule2() +
                               c3 * self._rule3() +
                               c4 * self._avoid_obstacles() +
-                              g * self._steer_to_goal(goal))
+                              g * goal_steering)
 
     def _speed_cap(self):
         speed = np.linalg.norm(self._velocity)

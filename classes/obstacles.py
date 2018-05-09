@@ -4,7 +4,13 @@ import numpy as np
 class Obstacle:
     def __init__(self, position, ndim=None):
         self._ndim = ndim if ndim else 3
+
+        self._position = np.zeros(self._ndim)
         self.position = position
+
+    @property
+    def ndim(self):
+        return self._ndim
 
     @property
     def position(self):
@@ -12,9 +18,7 @@ class Obstacle:
 
     @position.setter
     def position(self, position):
-        self._position = np.array(position, dtype=float)
-        if self.position.shape != (self._ndim,):
-            raise ValueError('position must be of shape ({},)'.format(self._ndim))
+        self._position[:] = position[:]
 
     def distance(self, r):
         raise NotImplementedError()
@@ -44,3 +48,18 @@ class Wall(Obstacle):
 
     def direction(self, r):
         return self._direction
+
+
+class Sphere(Obstacle):
+    def __init__(self, position, ndim=None):
+        """
+        A sphere in ndim space.
+        """
+        super().__init__(position, ndim)
+
+    def distance(self, r):
+        return np.linalg.norm(r - self.position)
+
+    def direction(self, r):
+        d = r - self.position
+        return d / np.linalg.norm(d)

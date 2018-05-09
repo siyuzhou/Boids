@@ -1,7 +1,8 @@
 
 import numpy as np
 from .boid import Boid
-from .obstacles import Wall
+from .obstacles import Obstacle, Wall, Sphere
+from .goals import Goal
 
 
 class Environment2D:
@@ -9,6 +10,7 @@ class Environment2D:
 
     def __init__(self, boundary):
         self._population = []
+        self._goals = []
 
         xmin, xmax, ymin, ymax = boundary
         self.obstacles = [Wall((xmin, 0), (1, 0), ndim=2),
@@ -20,13 +22,27 @@ class Environment2D:
     def population(self):
         return self._population
 
-    @population.setter
-    def population(self, population):
-        for boid in population:
-            if boid.position.shape != (2,):
-                raise ValueError('space dimention of the boid does not match the environment')
+    def add_agent(self, agent):
+        if not isinstance(agent, Boid):
+            raise ValueError('agent must be an instance of Boid')
 
-        self._population = population
+        if agent.ndim != 2:
+            raise ValueError('position space of agent must be 2D')
+        self._population.append(agent)
+
+    def add_goal(self, goal):
+        if not isinstance(goal, Goal):
+            raise ValueError('goal must be an instance of Goal')
+        if goal.ndim != 2:
+            raise ValueError('position space of goal must be 2D')
+        self._goals.append(goal)
+
+    def add_obstacle(self, obstacle):
+        if not isinstance(obstacle, Obstacle):
+            raise ValueError('obstacle must be an instance of Obstacle')
+        if obstacle.ndim !=2:
+            raise ValueError('position space of obstacle must be 2D')
+        self.obstacles.append(obstacle)
 
     def update(self, dt):
         """
@@ -35,7 +51,7 @@ class Environment2D:
         """
         for boid in self.population:
             boid.observe(self)
-            boid.decide()
+            boid.decide(self._goals)
         # Hold off moving agents until all have made decision.
         # This ensures synchronous update.
         for boid in self.population:

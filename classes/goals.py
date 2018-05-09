@@ -2,10 +2,16 @@ import numpy as np
 
 
 class Goal:
-    def __init__(self, position, ndim=3):
+    def __init__(self, position, priority=1, ndim=3):
         self._ndim = ndim if ndim else 3
 
         self._position = np.zeros(self._ndim)
+
+        self.priority = priority
+
+    @property
+    def ndim(self):
+        return self._ndim
 
     @property
     def position(self):
@@ -14,3 +20,4 @@ class Goal:
     @position.setter
     def position(self, position):
         self._position[:] = position[:]
+
