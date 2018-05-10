@@ -6,6 +6,7 @@ class Goal:
         self._ndim = ndim if ndim else 3
 
         self._position = np.zeros(self._ndim)
+        self.position = position
 
         self.priority = priority
 
@@ -20,4 +21,3 @@ class Goal:
     @position.setter
     def position(self, position):
         self._position[:] = position[:]
-
