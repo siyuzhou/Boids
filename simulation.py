@@ -6,9 +6,12 @@ from classes import *
 
 
 def main(args):
-    env = Environment2D((0, 100, 0, 100))
-    env.population = [Boid.random(100, 10, vision=20, comfort_zone=3, speed_cap=20, ndim=2)
-                      for _ in range(100)]
+    env = Environment2D((-100, 200, -100, 200))
+    for _ in range(args.num_agents):
+        env.add_agent(Boid.random(100, 10, vision=20,
+                                  comfort_zone=3, speed_cap=20, ndim=2))
+
+    env.add_goal(Goal(np.random.rand(2)*100, ndim=2))
 
     if args.animation:
         import matplotlib.pyplot as plt
@@ -23,14 +26,15 @@ def main(args):
             return scat,
 
         fig, ax = plt.subplots()
-        ax.set_xlim(-5, 105)
-        ax.set_ylim(-5, 105)
+        ax.set_xlim(-100, 200)
+        ax.set_ylim(-100, 200)
         ax.set_aspect('equal')
 
         scat = ax.scatter([], [])
 
         anim = animation.FuncAnimation(fig, animate,
-                                       frames=args.steps, interval=20, blit=True, fargs=(scat, env))
+                                       fargs=(scat, env),
+                                       frames=args.steps, interval=20, blit=True)
 
         anim.save(args.save_name+'.gif', dpi=80, writer='imagemagick')
 
@@ -45,7 +49,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--steps', type=int, default=3000)
+    parser.add_argument('--num-agents', type=int, default=100)
+    parser.add_argument('--steps', type=int, default=1000)
     parser.add_argument('--dt', type=float, default=0.03)
     parser.add_argument('--animation', action='store_true')
     parser.add_argument('--save-name', type=str)
