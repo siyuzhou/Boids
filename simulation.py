@@ -8,7 +8,8 @@ from classes import *
 def main(args):
     env = Environment2D((-100, 200, -100, 200))
     for _ in range(args.num_agents):
-        env.add_agent(Boid.random(100, 15, comfort_zone=3, speed_cap=20, ndim=2))
+        env.add_agent(Boid.random(
+            100, 15, comfort_zone=3, speed_cap=20, ndim=2))
 
     goal = Goal(np.random.rand(2)*100, ndim=2)
     env.add_goal(goal)
@@ -20,7 +21,7 @@ def main(args):
         plt.rcParams['animation.html'] = 'html5'
 
         def animate(i, scat, env):
-            env.update(0.03)
+            env.update(args.dt)
 
             scat.set_offsets([boid.position for boid in env.population])
             return scat,
