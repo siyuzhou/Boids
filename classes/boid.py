@@ -4,7 +4,8 @@ import numpy as np
 class Boid:
     """Boid agent"""
 
-    def __init__(self, position, velocity, vision=None, comfort_zone=None, speed_cap=None, ndim=None):
+    def __init__(self, position, velocity, vision=None, comfort_zone=None,
+                 speed_cap=None, acceleration_cap=None, ndim=None):
         self._ndim = ndim if ndim else 3
 
         self._position = np.zeros(self._ndim)
@@ -18,7 +19,8 @@ class Boid:
         self.comfort_zone = float(comfort_zone) if comfort_zone else 0.
 
         # Max speed the boid can achieve.
-        self.speed_cap = float(speed_cap) if speed_cap else np.inf
+        self.speed_cap = float(speed_cap) if speed_cap else None
+        self.acceleration_cap = float(acceleration_cap) if acceleration_cap else None
 
         self.neighbors = []
         self.obstacles = []
@@ -27,11 +29,12 @@ class Boid:
         return 'Boid at position {} with velocity {}'.format(self.position, self.velocity)
 
     @classmethod
-    def random(cls, max_x, max_v, vision=None, comfort_zone=None, speed_cap=None, ndim=None):
+    def random(cls, max_x, max_v, vision=None, comfort_zone=None,
+               speed_cap=None, acceleration_cap=None, ndim=3):
         position = np.random.uniform(0, max_x, ndim)
         velocity = np.random.uniform(-max_v, max_v, ndim)
 
-        return cls(position, velocity, vision, comfort_zone, speed_cap, ndim)
+        return cls(position, velocity, vision, comfort_zone, speed_cap, acceleration_cap, ndim)
 
     @property
     def ndim(self):
@@ -44,7 +47,6 @@ class Boid:
     @position.setter
     def position(self, position):
         self._position[:] = position[:]
-
 
     @property
     def velocity(self):
@@ -94,7 +96,14 @@ class Boid:
         repel = np.zeros(self._ndim)
         for neighbor in self.neighbors:
             if not self.is_comfortable_with(neighbor):
-                repel += self.position - neighbor.position
+                displacement = self.position - neighbor.position
+                norm_displacement = np.linalg.norm(displacement)
+
+                # Divergence protection.
+                if norm_displacement < 0.01:
+                    norm_displacement = 0.01
+
+                repel += displacement / norm_displacement / norm_displacement
                 # No averaging taken place.
                 # When two neighbors are in the same position, a stronger urge
                 # to move away is assumed, despite that distancing itself from
@@ -133,15 +142,16 @@ class Boid:
         if not goal:
             return self.velocity / np.linalg.norm(self.velocity)
 
+        # The urge to chase the goal is stronger when farther.
         return goal.position - self.position
 
     def decide(self, goals):
         """Make decision for acceleration."""
         c1 = 0.08
         c2 = 1
-        c3 = 0.3
+        c3 = 0.2
         c4 = 0.1
-        g = 0.01
+        g = 0.05
 
         goal_steering = np.zeros(self.ndim)
         squared_norm = 0
@@ -158,14 +168,20 @@ class Boid:
                               c4 * self._avoid_obstacles() +
                               g * goal_steering)
 
-    def _speed_cap(self):
-        speed = np.linalg.norm(self._velocity)
-        if speed > self.speed_cap:
-            self._velocity = self._velocity / speed * self.speed_cap
+    def _regularize(self):
+        if self.speed_cap:
+            speed = np.linalg.norm(self._velocity)
+            if speed > self.speed_cap:
+                self._velocity = self._velocity / speed * self.speed_cap
+
+        if self.acceleration_cap:
+            acceleration = np.linalg.norm(self._acceleration)
+            if acceleration > self.acceleration_cap:
+                self._acceleration = self._acceleration / acceleration * self.acceleration_cap
 
     def move(self, dt):
         self._velocity += self._acceleration * dt
         # Velocity cap
-        self._speed_cap()
+        self._regularize()
 
         self._position += self._velocity * dt

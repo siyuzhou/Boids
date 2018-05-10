@@ -8,10 +8,10 @@ from classes import *
 def main(args):
     env = Environment2D((-100, 200, -100, 200))
     for _ in range(args.num_agents):
-        env.add_agent(Boid.random(100, 10, vision=20,
-                                  comfort_zone=3, speed_cap=20, ndim=2))
+        env.add_agent(Boid.random(100, 15, comfort_zone=3, speed_cap=20, ndim=2))
 
-    env.add_goal(Goal(np.random.rand(2)*100, ndim=2))
+    goal = Goal(np.random.rand(2)*100, ndim=2)
+    env.add_goal(goal)
 
     if args.animation:
         import matplotlib.pyplot as plt
@@ -31,6 +31,7 @@ def main(args):
         ax.set_aspect('equal')
 
         scat = ax.scatter([], [])
+        ax.scatter(*goal.position)
 
         anim = animation.FuncAnimation(fig, animate,
                                        fargs=(scat, env),
@@ -42,7 +43,8 @@ def main(args):
         data = []
         for _ in range(args.steps):
             env.update(0.03)
-            data.append([boid.position for boid in env.population])
+            data.append([goal.position for goal in env.goals] +
+                        [boid.position for boid in env.population])
 
         np.save(args.save_name+'.npy', data)
 
