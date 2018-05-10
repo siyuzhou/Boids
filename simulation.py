@@ -6,14 +6,15 @@ from classes import *
 
 
 def main(args):
-    env = Environment2D((-100, 200, -100, 200))
+    env = Environment2D((-100, 100, -100, 100))
     for _ in range(args.agents):
         env.add_agent(Boid.random(
-            100, 15, comfort_zone=3, speed_cap=20, ndim=2))
+            100, 15, comfort_zone=3, speed_cap=15, ndim=2))
 
-    goal = Goal(np.random.rand(2)*100, ndim=2)
+    goal = Goal(np.random.uniform(-50, 50, 2), ndim=2)
     env.add_goal(goal)
-    sphere = Sphere(np.random.rand(2)*50, ndim=2)
+    # Create a sphere obstacle within in +/- 50 of goal's position.
+    sphere = Sphere(np.random.uniform(-20, 20, 2) + goal.position, ndim=2)
     env.add_obstacle(sphere)
 
     if args.animation:  # Generate animation
@@ -29,8 +30,8 @@ def main(args):
             return scat,
 
         fig, ax = plt.subplots()
-        ax.set_xlim(-100, 200)
-        ax.set_ylim(-100, 200)
+        ax.set_xlim(-100, 100)
+        ax.set_ylim(-100, 100)
         ax.set_aspect('equal')
 
         scat = ax.scatter([], [])

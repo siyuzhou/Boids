@@ -31,7 +31,7 @@ class Boid:
     @classmethod
     def random(cls, max_x, max_v, vision=None, comfort_zone=None,
                speed_cap=None, acceleration_cap=None, ndim=3):
-        position = np.random.uniform(0, max_x, ndim)
+        position = np.random.uniform(-max_x, max_x, ndim)
         velocity = np.random.uniform(-max_v, max_v, ndim)
 
         return cls(position, velocity, vision, comfort_zone, speed_cap, acceleration_cap, ndim)
@@ -125,13 +125,13 @@ class Boid:
     def _avoid_obstacles(self):
         """Boids try to avoid obstacles."""
         # Linear repulsive force model.
-        proximity = 3  # Max distance at which the boid starts to react.
+        proximity = 5  # Max distance at which the boid starts to react.
         repel = np.zeros(self._ndim)
         for obstacle in self.obstacles:
             distance = obstacle.distance(self.position)
             if distance > proximity:
                 continue
-            repel += (proximity - distance) ** 2 * obstacle.direction(self.position)
+            repel += distance ** (-2) * obstacle.direction(self.position)
 
         return repel
 
