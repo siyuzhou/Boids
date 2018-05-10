@@ -13,6 +13,8 @@ def main(args):
 
     goal = Goal(np.random.rand(2)*100, ndim=2)
     env.add_goal(goal)
+    sphere = Sphere(np.random.rand(2)*50, ndim=2)
+    env.add_obstacle(sphere)
 
     if args.animation:  # Generate animation
         import matplotlib.pyplot as plt
@@ -33,6 +35,7 @@ def main(args):
 
         scat = ax.scatter([], [])
         ax.scatter(*goal.position)
+        ax.scatter(*sphere.position)
 
         anim = animation.FuncAnimation(fig, animate,
                                        fargs=(scat, env),
