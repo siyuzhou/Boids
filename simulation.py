@@ -65,6 +65,9 @@ def main(args):
             position_data_all.append(position_data)
             velocity_data_all.append(velocity_data)
 
+        position_data_all = np.asarray(position_data_all).transpose(0, 1, 3, 2)
+        velocity_data_all = np.asarray(velocity_data_all).transpose(0, 1, 3, 2)
+
         print('All {} simulations completed.'.format(args.instances))
 
         np.save('data/'+args.save_name+'_position.npy', position_data_all)
