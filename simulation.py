@@ -45,22 +45,30 @@ def main(args):
         anim.save(args.save_name+'.gif', dpi=80, writer='imagemagick')
 
     else:  # Generate data
-        data_all = []
+        position_data_all = []
+        velocity_data_all = []
         for i in range(args.instances):
             if i % 100 == 0:
                 print('Simulation {}/{}...'.format(i, args.instances))
 
-            data = []
+            position_data = []
+            velocity_data = []
             for _ in range(args.steps):
                 env.update(args.dt)
-                data.append([goal.position for goal in env.goals] +
-                            [boid.position for boid in env.population])
+                position_data.append([goal.position for goal in env.goals] +
+                                     [sphere.position] +
+                                     [boid.position for boid in env.population])
+                velocity_data.append([np.zeros(2) for goal in env.goals] +
+                                     [np.zeros(2)] +
+                                     [boid.velocity for boid in env.population])
 
-            data_all.append(data)
+            position_data_all.append(position_data)
+            velocity_data_all.append(velocity_data)
 
         print('All {} simulations completed.'.format(args.instances))
 
-        np.save(args.save_name+'.npy', data)
+        np.save('data/'+args.save_name+'_position.npy', position_data_all)
+        np.save('data/'+args.save_name+'_velocity.npy', velocity_data_all)
 
 
 if __name__ == '__main__':
