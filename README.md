@@ -4,4 +4,4 @@ Implemented following the instructions at http://www.kfish.org/boids/pseudocode.
 
 ![2D Flocking Demo](demo.gif)
 ![2D Flocking w/ Goal](demo_goal.gif)
-![2D Flocking 2/ Goal and Obstacle](demo_goal_obstacle.gif)
+![2D Flocking 2/ Goal and Obstacle](demo_obstacle.gif)
