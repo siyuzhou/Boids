@@ -56,14 +56,14 @@ def main():
     else:  # Generate data
         position_data_all = []
         velocity_data_all = []
-        for i in range(args.instances):
+        for i in range(ARGS.instances):
             if i % 100 == 0:
                 print('Simulation {}/{}...'.format(i, ARGS.instances))
 
             position_data = []
             velocity_data = []
-            for _ in range(args.steps):
-                env.update(args.dt)
+            for _ in range(ARGS.steps):
+                env.update(ARGS.dt)
                 position_data.append([goal.position for goal in env.goals] +
                                      [sphere.position] +
                                      [boid.position for boid in env.population])
@@ -79,8 +79,8 @@ def main():
 
         print('All {} simulations completed.'.format(ARGS.instances))
 
-        np.save('data/'+args.save_name+'_position.npy', position_data_all)
-        np.save('data/'+args.save_name+'_velocity.npy', velocity_data_all)
+        np.save('data/'+ARGS.save_name+'_position.npy', position_data_all)
+        np.save('data/'+ARGS.save_name+'_velocity.npy', velocity_data_all)
 
 
 if __name__ == '__main__':
