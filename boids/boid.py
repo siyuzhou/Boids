@@ -20,7 +20,8 @@ class Boid:
 
         # Max speed the boid can achieve.
         self.speed_cap = float(speed_cap) if speed_cap else None
-        self.acceleration_cap = float(acceleration_cap) if acceleration_cap else None
+        self.acceleration_cap = float(
+            acceleration_cap) if acceleration_cap else None
 
         self.neighbors = []
         self.obstacles = []
@@ -131,7 +132,7 @@ class Boid:
             distance = obstacle.distance(self.position)
             if distance > proximity:
                 continue
-            repel += distance ** (-2) * obstacle.direction(self.position)
+            repel += distance ** (-3) * obstacle.direction(self.position)
 
         return repel
 

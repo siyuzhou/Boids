@@ -1,7 +1,8 @@
 import argparse
+import time
 import numpy as np
 
-from classes import *
+from boids import *
 
 
 def animate(env, region):
@@ -48,7 +49,7 @@ def main():
     goal = Goal(np.random.uniform(-50, 50, 2), ndim=2)
     env.add_goal(goal)
     # Create a sphere obstacle within in +/- 50 of goal's position.
-    sphere = Sphere(np.random.uniform(-20, 20, 2) + goal.position, ndim=2)
+    sphere = Sphere(np.random.uniform(-40, 40, 2) + goal.position, 3, ndim=2)
     env.add_obstacle(sphere)
 
     if ARGS.animation:  # Generate animation
@@ -56,9 +57,13 @@ def main():
     else:  # Generate data
         position_data_all = []
         velocity_data_all = []
+
+        prev_time = time.time()
         for i in range(ARGS.instances):
             if i % 100 == 0:
-                print('Simulation {}/{}...'.format(i, ARGS.instances))
+                print('Simulation {}/{}... {:.1f}s'.format(i,
+                                                           ARGS.instances, time.time()-prev_time))
+                prev_time = time.time()
 
             position_data = []
             velocity_data = []

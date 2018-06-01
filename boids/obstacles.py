@@ -40,7 +40,8 @@ class Wall(Obstacle):
 
         self._direction = np.array(direction, dtype=float)
         if self._direction.shape != (self._ndim,):
-            raise ValueError('direction must be of shape ({},)'.format(self._ndim))
+            raise ValueError(
+                'direction must be of shape ({},)'.format(self._ndim))
         self._direction /= np.linalg.norm(self._direction)  # Normalization
 
     def distance(self, r):
@@ -51,14 +52,18 @@ class Wall(Obstacle):
 
 
 class Sphere(Obstacle):
-    def __init__(self, position, ndim=None):
+    def __init__(self, position, size, ndim=None):
         """
         A sphere in ndim space.
         """
         super().__init__(position, ndim)
+        self.size = size
 
     def distance(self, r):
-        return np.linalg.norm(r - self.position)
+        d = np.linalg.norm(r - self.position) - self.size
+        if d < 0.1:
+            d = 0.1
+        return d
 
     def direction(self, r):
         d = r - self.position
