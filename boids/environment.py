@@ -1,8 +1,9 @@
 
 import numpy as np
+
 from .boid import Boid
-from .obstacles import Obstacle, Wall, Sphere
 from .goals import Goal
+from .obstacles import Obstacle, Sphere, Wall
 
 
 class Environment2D:

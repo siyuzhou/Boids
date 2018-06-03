@@ -1,9 +1,10 @@
 import argparse
-import tensorflow as tf
-import numpy as np
-from gnn import utils
-from data_loader import load_data
 
+import numpy as np
+import tensorflow as tf
+
+from data_loader import load_data
+from gnn import utils
 from gnn.encoder import encoder_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
