@@ -79,9 +79,13 @@ def main():
             position_data_all.append(position_data)
             velocity_data_all.append(velocity_data)
 
-        # position_data_all shape: [instances, steps, agents, ndims]
+        if ARGS.data_transpose:
+            # position_data_all shape: [instances, steps, agents, ndims]
+            # After transposition: [instances, agents, steps, ndims]
+            position_data_all = np.transpose(position_data_all, ARGS.data_transpose)
+            velocity_data_all = np.transpose(velocity_data_all, ARGS.data_transpose)
 
-        print('All {} simulations completed.'.format(ARGS.instances))
+        print('Simulations {0}/{0} completed.'.format(ARGS.instances))
 
         np.save('data/'+ARGS.save_name+'_position.npy', position_data_all)
         np.save('data/'+ARGS.save_name+'_velocity.npy', velocity_data_all)
@@ -101,6 +105,8 @@ if __name__ == '__main__':
                         help='whether animation is generated')
     parser.add_argument('--save-name', type=str,
                         help='name of the save file')
+    parser.add_argument('--data-transpose', type=int, nargs=4, default=None,
+                        help='axes for data transposition')
 
     ARGS = parser.parse_args()
 

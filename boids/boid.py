@@ -126,7 +126,7 @@ class Boid:
     def _avoid_obstacles(self):
         """Boids try to avoid obstacles."""
         # Linear repulsive force model.
-        proximity = 5  # Max distance at which the boid starts to react.
+        proximity = 10  # Max distance at which the boid starts to react.
         repel = np.zeros(self._ndim)
         for obstacle in self.obstacles:
             distance = obstacle.distance(self.position)
