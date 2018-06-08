@@ -1,8 +1,9 @@
 import numpy as np
 import tensorflow as tf
 
+from .modules import *
 
-def mlp_encoder(feature, mode, params):
+def mlp_encoder(feature, params, training=False):
     # Tensor `feature` has shape [num_sims, time_steps, num_agents, ndims].
     feature = feature['time_series']
     time_steps, num_agents, ndims = feature.get_shape().as_list()[1:]
@@ -11,16 +12,12 @@ def mlp_encoder(feature, mode, params):
     feature = tf.transpose(feature, [0, 2, 1, 3])
     state = tf.reshape(feature, shape=[-1, num_agents, time_steps * ndims])
     # Node state encoder with MLP.
-    for units in params['node_encoder']['hidden_units'][:-1]:
-        state = tf.layers.dense(state, units, activation=tf.nn.relu)
-        state = tf.layers.dropout(state, params['dropout'],
-                                  training=(mode == tf.estimator.ModeKeys.TRAIN))
-    out_units = params['node_encoder']['hidden_units'][-1]
-    state = tf.layers.dense(state, out_units, activation=tf.nn.relu)
-    # `state` encoded the node state, shape [num_sims, num_agents, out_units].
-    if params['batch_norm']:
-        state = tf.layers.batch_normalization(
-            state, training=(mode == tf.estimator.ModeKeys.TRAIN))
+    state = mlp_layers(state,
+                       params['hidden_units'],
+                       params['dropout'],
+                       params['batch_norm'],
+                       training=training)
+
     # Send encoded state to edges.
     # `edge_sources` and `edge_targets` in shape [num_edges, num_agents].
     edge_sources, edge_targets = np.where(np.ones((num_agents, num_agents)) - np.eye(num_agents))
@@ -36,16 +33,11 @@ def mlp_encoder(feature, mode, params):
     msg_edge = tf.concat([msg_from_source, msg_from_target], axis=-1)
 
     # Encode edge messages with MLP
-    for units in params['edge_encoder']['hidden_units'][:-1]:
-        msg_edge = tf.layers.dense(msg_edge, units, activation=tf.nn.relu)
-        msg_edge = tf.layers.dropout(msg_edge, params['dropout'],
-                                     training=(mode == tf.estimator.ModeKeys.TRAIN))
-    out_units = params['node_encoder']['hidden_units'][-1]
-    msg_edge = tf.layers.dense(msg_edge, out_units, activation=tf.nn.relu)
-
-    if params['batch_norm']:
-        msg_edge = tf.layers.batch_normalization(
-            msg_edge, training=(mode == tf.estimator.ModeKeys.TRAIN))
+    msg_edge = mlp_layers(msg_edge,
+                          params['hidden_units'],
+                          params['dropout'],
+                          params['batch_norm'],
+                          training=training)
 
     edge_type = tf.layers.dense(msg_edge, params['edge_types'])
 

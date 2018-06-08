@@ -7,11 +7,10 @@ from data_loader import load_data
 from gnn import utils
 from gnn.encoder import encoder_fn
 
-tf.logging.set_verbosity(tf.logging.INFO)
-
 
 def encoder_model_fn(features, labels, mode, params):
-    logits = encoder_fn[params['encoder']](features, mode, params['encoder_params'])
+    logits = encoder_fn[params['encoder']](features, params['encoder_params'],
+                                           training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
@@ -47,8 +46,7 @@ def main():
     model_params = {
         'encoder': 'mlp',
         'encoder_params': {
-            'node_encoder': {'hidden_units': [ARGS.hidden_units, ARGS.hidden_units]},
-            'edge_encoder': {'hidden_units': [ARGS.hidden_units, ARGS.hidden_units]},
+            'hidden_units': [ARGS.hidden_units, ARGS.hidden_units],
             'dropout': ARGS.dropout,
             'batch_norm': ARGS.batch_norm,
             'edge_types': ARGS.edge_types
@@ -119,5 +117,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-train', action='store_true', default=False,
                         help='skip training and use for evaluation only')
     ARGS = parser.parse_args()
+
+    tf.logging.set_verbosity(tf.logging.INFO)
 
     main()
