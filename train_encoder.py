@@ -3,14 +3,15 @@ import argparse
 import numpy as np
 import tensorflow as tf
 
+import gnn
 from data_loader import load_data
-from gnn import utils
-from gnn.encoder import encoder_fn
 
 
 def encoder_model_fn(features, labels, mode, params):
-    logits = encoder_fn[params['encoder']](features, params['encoder_params'],
-                                           training=(mode == tf.estimator.ModeKeys.TRAIN))
+    logits = gnn.encoder.encoder_fn[params['encoder']](
+        features,
+        params['encoder_params'],
+        training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
@@ -26,15 +27,11 @@ def encoder_model_fn(features, labels, mode, params):
     accuracy = tf.metrics.accuracy(
         labels=labels, predictions=predictions["classes"], name="accuracy")
 
-    # logging_hook = tf.train.LoggingTensorHook({"accuracy": "accuracy"},
-    #                                           every_n_iter = 100)
-
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.AdamOptimizer(learning_rate=0.0004)
         train_op = optimizer.minimize(loss=loss,
                                       global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-    #                                      training_hooks=[logging_hook])
 
     eval_metric_ops = {"accuracy": accuracy}
     # mode == tf.estimator.ModeKeys.EVAL
@@ -64,7 +61,7 @@ def main():
 
     if not ARGS.no_train:
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x={'time_series': train_data},
+            x=train_data,
             y=train_edge,
             batch_size=ARGS.batch_size,
             num_epochs=None,
@@ -76,22 +73,13 @@ def main():
 
     # Evaluation
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={'time_series': test_data},
+        x=test_data,
         y=test_edge,
         num_epochs=1,
         shuffle=False
     )
     eval_results = mlp_encoder_classifier.evaluate(input_fn=eval_input_fn)
     print("Validation set:", eval_results)
-
-    # Prediction
-    # predict_input_fn = tf.estimator.inputs.numpy_input_fn(test_data, shuffle=False)
-    # prediction = mlp_encoder_classifier.predict(input_fn=predict_input_fn)
-    # count = 0
-    # for pred in prediction:
-    #     if len(set(pred['classes'])) > 1:
-    #         count += 1
-    # print(count)
 
 
 if __name__ == '__main__':

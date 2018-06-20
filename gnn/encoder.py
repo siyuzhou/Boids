@@ -4,14 +4,13 @@ import tensorflow as tf
 from .modules import *
 
 
-def mlp_encoder(feature, params, training=False):
-    # Tensor `feature` has shape [num_sims, time_steps, num_agents, ndims].
-    feature = feature['time_series']
-    time_steps, num_agents, ndims = feature.shape.as_list()[1:]
+def mlp_encoder(features, params, training=False):
+    # Tensor `features` has shape [num_sims, time_steps, num_agents, ndims].
+    time_steps, num_agents, ndims = features.shape.as_list()[1:]
     # Input Layer
     # Transpose to [num_sims, num_agents, time_steps, ndims]
-    feature = tf.transpose(feature, [0, 2, 1, 3])
-    state = tf.reshape(feature, shape=[-1, num_agents, time_steps * ndims])
+    features = tf.transpose(features, [0, 2, 1, 3])
+    state = tf.reshape(features, shape=[-1, num_agents, time_steps * ndims])
     # Node state encoder with MLP.
     state = mlp_layers(state,
                        params['hidden_units'],

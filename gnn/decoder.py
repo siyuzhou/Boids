@@ -4,8 +4,8 @@ import tensorflow as tf
 from .modules import *
 
 
-def mlp_decoder(feature,  params, training=False):
-    time_series, edge_type = feature['time_series'], feature['edge_type']
+def mlp_decoder(features,  params, training=False):
+    time_series, edge_type = features['time_series'], features['edge_type']
     # time_series shape [num_sims, time_steps, num_agents, ndims]
     # edge_type shape [num_sims, num_edges, num_edge_types]
     time_steps, num_agents, ndims = time_series.shape.as_list()[1:]

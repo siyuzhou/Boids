@@ -1,26 +1,38 @@
 import os
 import argparse
 
-import numpy as np
 import tensorflow as tf
+import numpy as np
 
 import gnn
 from data_loader import load_data
 
 
-def decoder_model_fn(features, labels, mode, params):
-    pred = gnn.decoder.decoder_fn[params['decoder']](
-        features,
+def model_fn(features, labels, mode, params):
+    time_series, edge_type = features, labels
+
+    # Infer edge_type with encoder.
+    infered_edge_type = gnn.encoder.encoder_fn[params['encoder']](
+        time_series,
+        params['encoder_params'],
+        training=(mode == tf.estimator.ModeKeys.TRAIN))
+
+    # Predict state of next steps with decoder
+    # using time_series and infered_edge_type
+    state_next_step = gnn.decoder.decoder_fn[params['decoder']](
+        {'time_series': time_series,
+         'edge_type': infered_edge_type},
         params['decoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
-    predictions = {'state_next_step': pred}
+    predictions = {'state_next_step': state_next_step,
+                   'edge_type': tf.argmax(input=infered_edge_type, axis=-1)}
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    loss = tf.losses.mean_squared_error(features['time_series'][:, 1:, :, :],
-                                        pred[:, :-1, :, :])
+    loss = tf.losses.mean_squared_error(time_series[:, 1:, :, :],
+                                        state_next_step[:, :-1, :, :])
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.AdamOptimizer(learning_rate=0.0004)
@@ -28,65 +40,76 @@ def decoder_model_fn(features, labels, mode, params):
                                       global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
-    # eval accuracy
-    eval_metric_ops = {'eval_loss': tf.metrics.mean_squared_error(features['time_series'][:, 1:, :, :],
-                                                                  pred[:, :-1, :, :])}
-    return tf.estimator.EstimatorSpec(
-        mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
+    time_series_loss = tf.metrics.mean_squared_error(time_series[:, 1:, :, :],
+                                                     state_next_step[:, :-1, :, :])
+    edge_type_accuracy = tf.metrics.accuracy(
+        labels=edge_type, predictions=predictions['edge_type'])
+
+    eval_metric_ops = {'time_series_loss': time_series_loss,
+                       'edge_type_accuracy': edge_type_accuracy}
+    return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
+                                      eval_metric_ops=eval_metric_ops)
 
 
 def main():
     model_params = {
+        'encoder': 'mlp',
+        'encoder_params': {
+            'hidden_units': [ARGS.hidden_units, ARGS.hidden_units],
+            'dropout': ARGS.dropout,
+            'batch_norm': ARGS.batch_norm,
+            'edge_types': ARGS.edge_types
+        },
         'decoder': 'mlp',
         'decoder_params': {
             'hidden_units': [ARGS.hidden_units, ARGS.hidden_units],
             'dropout': ARGS.dropout,
-            'batch_norm': ARGS.batch_norm}}
+            'batch_norm': ARGS.batch_norm
+        }
+    }
 
     print('Loading data...')
     train_data, train_edge, test_data, test_edge = load_data(
         ARGS.data_dir, ARGS.data_transpose)
 
-    # Convert int labels to one hot vectors.
-    train_edge = gnn.utils.one_hot(train_edge, ARGS.edge_types, np.float32)
-    test_edge = gnn.utils.one_hot(test_edge, ARGS.edge_types, np.float32)
-
-    mlp_decoder_regressor = tf.estimator.Estimator(
-        model_fn=decoder_model_fn,
+    mlp_gnn_regressor = tf.estimator.Estimator(
+        model_fn=model_fn,
         params=model_params,
-        model_dir=ARGS.log_dir)
-
+        model_dir=ARGS.log_dir
+    )
+    # Training
     if not ARGS.no_train:
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x={'time_series': train_data,
-               'edge_type': train_edge},
+            x=train_data,
+            y=train_edge,
             batch_size=ARGS.batch_size,
             num_epochs=None,
             shuffle=True
         )
 
-        mlp_decoder_regressor.train(input_fn=train_input_fn,
-                                    steps=ARGS.steps)
+        mlp_gnn_regressor.train(input_fn=train_input_fn,
+                                steps=ARGS.steps)
 
     # Evaluation
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={'time_series': test_data,
-           'edge_type': test_edge},
+        x=test_data,
+        y=test_edge,
         num_epochs=1,
         shuffle=False
     )
-    eval_results = mlp_decoder_regressor.evaluate(input_fn=eval_input_fn)
+    eval_results = mlp_gnn_regressor.evaluate(input_fn=eval_input_fn)
     print("Validation set:", eval_results)
 
     # Prediction
     predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={'time_series': test_data[:1],
-           'edge_type': test_edge[:1]},
+        x=test_data[:4],
         shuffle=False)
 
-    prediction = mlp_decoder_regressor.predict(input_fn=predict_input_fn)
-    prediction = np.array([pred['state_next_step'] for pred in prediction])
-    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), prediction)
+    prediction = mlp_gnn_regressor.predict(input_fn=predict_input_fn)
+    prediction = [(pred['state_next_step'], pred['edge_type']) for pred in prediction]
+    state_next_step, infered_edge_type = zip(*prediction)
+    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), state_next_step)
+    np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), infered_edge_type)
 
 
 if __name__ == '__main__':
