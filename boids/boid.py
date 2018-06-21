@@ -147,8 +147,9 @@ class Boid:
             # normal direction away from obstacle
             cos_theta = np.sqrt(1 - sin_theta * sin_theta)
             turn_direction = self.direction * cos_theta - obstacle_direction
+            turn_direction = turn_direction / np.linalg.norm(turn_direction)
             # Stronger the obstrution, stronger the turn.
-            return turn_direction * (self.comfort - normal_distance) ** 2
+            return turn_direction * (self.comfort - normal_distance)
 
         # Return 0 if obstacle does not obstruct.
         return np.zeros(self.ndim)
