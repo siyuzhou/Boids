@@ -31,7 +31,8 @@ def animate(env, region):
         ax.scatter(*goal.position, color='g')
     for obstacle in env.obstacles:
         if not isinstance(obstacle, Wall):
-            ax.scatter(*obstacle.position, color='r')
+            circle = plt.Circle(obstacle.position, obstacle.size, color='r', fill=False)
+            ax.add_patch(circle)
 
     anim = animation.FuncAnimation(fig, animate,
                                    fargs=(scat, env),
@@ -52,46 +53,43 @@ def main():
     goal = Goal(np.random.uniform(-50, 50, ARGS.ndim), ndim=ARGS.ndim)
     env.add_goal(goal)
     # Create a sphere obstacle within in +/- 50 of goal's position.
-    sphere = Sphere(np.random.uniform(-40, 40, ARGS.ndim) + goal.position, 3, ndim=ARGS.ndim)
+    sphere = Sphere(np.random.uniform(-30, 30, ARGS.ndim) + goal.position, 8, ndim=ARGS.ndim)
     env.add_obstacle(sphere)
 
-    if ARGS.animation:  # Generate animation
-        animate(env, region)
-    else:  # Generate data
-        position_data_all = []
-        velocity_data_all = []
+    position_data_all = []
+    velocity_data_all = []
 
-        prev_time = time.time()
-        for i in range(ARGS.instances):
-            if i % 100 == 0:
-                print('Simulation {}/{}... {:.1f}s'.format(i,
-                                                           ARGS.instances, time.time()-prev_time))
-                prev_time = time.time()
+    prev_time = time.time()
+    for i in range(ARGS.instances):
+        if i % 100 == 0:
+            print('Simulation {}/{}... {:.1f}s'.format(i,
+                                                       ARGS.instances, time.time()-prev_time))
+            prev_time = time.time()
 
-            position_data = []
-            velocity_data = []
-            for _ in range(ARGS.steps):
-                env.update(ARGS.dt)
-                position_data.append([goal.position for goal in env.goals] +
-                                     [sphere.position] +
-                                     [boid.position for boid in env.population])
-                velocity_data.append([np.zeros(2) for goal in env.goals] +
-                                     [np.zeros(2)] +
-                                     [boid.velocity for boid in env.population])
+        position_data = []
+        velocity_data = []
+        for _ in range(ARGS.steps):
+            env.update(ARGS.dt)
+            position_data.append([goal.position for goal in env.goals] +
+                                 [sphere.position] +
+                                 [boid.position for boid in env.population])
+            velocity_data.append([np.zeros(2) for goal in env.goals] +
+                                 [np.zeros(2)] +
+                                 [boid.velocity for boid in env.population])
 
-            position_data_all.append(position_data)
-            velocity_data_all.append(velocity_data)
+        position_data_all.append(position_data)
+        velocity_data_all.append(velocity_data)
 
-        if ARGS.data_transpose:
-            # position_data_all shape: [instances, steps, agents, ndims]
-            # After transposition: [instances, agents, steps, ndims]
-            position_data_all = np.transpose(position_data_all, ARGS.data_transpose)
-            velocity_data_all = np.transpose(velocity_data_all, ARGS.data_transpose)
+    if ARGS.data_transpose:
+        # position_data_all shape: [instances, steps, agents, ndims]
+        # After transposition: [instances, agents, steps, ndims]
+        position_data_all = np.transpose(position_data_all, ARGS.data_transpose)
+        velocity_data_all = np.transpose(velocity_data_all, ARGS.data_transpose)
 
-        print('Simulations {0}/{0} completed.'.format(ARGS.instances))
+    print('Simulations {0}/{0} completed.'.format(ARGS.instances))
 
-        np.save('data/'+ARGS.save_name+'_position.npy', position_data_all)
-        np.save('data/'+ARGS.save_name+'_velocity.npy', velocity_data_all)
+    np.save('data/'+ARGS.save_name+'_position.npy', position_data_all)
+    np.save('data/'+ARGS.save_name+'_velocity.npy', velocity_data_all)
 
 
 if __name__ == '__main__':
@@ -106,8 +104,6 @@ if __name__ == '__main__':
                         help='number of simulation instances')
     parser.add_argument('--dt', type=float, default=0.1,
                         help='time resolution')
-    parser.add_argument('--animation', action='store_true',
-                        help='whether animation is generated')
     parser.add_argument('--save-name', type=str,
                         help='name of the save file')
     parser.add_argument('--data-transpose', type=int, nargs=4, default=None,

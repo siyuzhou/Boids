@@ -13,7 +13,7 @@ class Boid:
         `anticipation`: range of anticipation for its own motion.
         `comfort`: distance the agent wants to keep from other objects.
         `max_speed`: max speed the agent can achieve.
-        `max_acceleratoin`: max acceleration the agent can achieve. 
+        `max_acceleratoin`: max acceleration the agent can achieve.
         """
         self._ndim = ndim if ndim else 3
 
@@ -33,8 +33,8 @@ class Boid:
         self._velocity = np.zeros(self._ndim)
         self._acceleration = np.zeros(self._ndim)
 
-        self.position = position
-        self.velocity = velocity
+        self._position[:] = position[:]
+        self._velocity[:] = velocity[:]
 
     @property
     def ndim(self):
@@ -44,17 +44,17 @@ class Boid:
     def position(self):
         return self._position
 
-    @position.setter
-    def position(self, position):
-        self._position[:] = position[:]
-
     @property
     def velocity(self):
         return self._velocity
 
-    @velocity.setter
-    def velocity(self, velocity):
-        self._velocity[:] = velocity[:]
+    @property
+    def speed(self):
+        return np.linalg.norm(self.velocity)
+
+    @property
+    def direction(self):
+        return self.velocity / self.speed
 
     def distance(self, other):
         """Distance from the other objects."""
@@ -123,23 +123,42 @@ class Boid:
 
     def _obstacle_avoidance(self):
         """Boids try to avoid obstacles."""
-        # Linear repulsive force model.
-        proximity = 10  # Max distance at which the boid starts to react.
-        repel = np.zeros(self._ndim)
-        for obstacle in self.obstacles:
+        # NOTE: Assume there is always enough space between obstacles
+        # Find the nearest obstacle in the front.
+        min_distance = np.inf
+        closest = -1
+        for i, obstacle in enumerate(self.obstacles):
             distance = obstacle.distance(self.position)
-            if distance > proximity:
-                continue
-            repel += distance ** (-3) * obstacle.direction(self.position)
+            if (np.dot(-obstacle.direction(self.position), self.velocity) > 0  # In the front
+                    and distance < min_distance):
+                closest, min_distance = i, distance
 
-        return repel
+        # No obstacles in front.
+        if closest < 0:
+            return np.zeros(self.ndim)
+
+        obstacle = self.obstacles[closest]
+        # normal distance of obstacle to velocity, note that min_distance is obstacle's distance
+        obstacle_direction = -obstacle.direction(self.position)
+        sin_theta = np.linalg.norm(np.cross(self.direction, obstacle_direction))
+        normal_distance = min_distance * sin_theta
+        # Decide if self is on course of collision.
+        if normal_distance < self.comfort:
+            # normal direction away from obstacle
+            cos_theta = np.sqrt(1 - sin_theta * sin_theta)
+            turn_direction = self.direction * cos_theta - obstacle_direction
+            # Stronger the obstrution, stronger the turn.
+            return turn_direction * (self.comfort - normal_distance) ** 2
+
+        # Return 0 if obstacle does not obstruct.
+        return np.zeros(self.ndim)
 
     def _goal_seeking(self, goal):
         """Individual goal of the boid."""
         # As a simple example, suppose the boid would like to go as fast as it
         # can in the current direction when no explicit goal is present.
         if not goal:
-            return self.velocity / np.linalg.norm(self.velocity)
+            return self.velocity / self.speed
 
         # The urge to chase the goal is stronger when farther.
         return goal.position - self.position
@@ -149,7 +168,7 @@ class Boid:
         c1 = 0.08
         c2 = 1
         c3 = 0.2
-        c4 = 0.1
+        c4 = 3
         g = 0.05
 
         goal_steering = np.zeros(self.ndim)
@@ -169,9 +188,8 @@ class Boid:
 
     def _regularize(self):
         if self.max_speed:
-            speed = np.linalg.norm(self._velocity)
-            if speed > self.max_speed:
-                self._velocity = self._velocity / speed * self.max_speed
+            if self.speed > self.max_speed:
+                self._velocity = self._velocity / self.speed * self.max_speed
 
         if self.max_acceleration:
             acceleration = np.linalg.norm(self._acceleration)

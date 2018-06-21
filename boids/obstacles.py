@@ -8,6 +8,7 @@ class Obstacle:
 
         self._position = np.zeros(self._ndim)
         self.position = position
+        self.size = 0
 
     @property
     def ndim(self):
@@ -25,7 +26,7 @@ class Obstacle:
         raise NotImplementedError()
 
     def direction(self, r):
-        """Direction of position `r` relative to self"""
+        """Direction of position `r` relative to obstacle surface"""
         raise NotImplementedError()
 
 
@@ -68,6 +69,6 @@ class Sphere(Obstacle):
         return d
 
     def direction(self, r):
-        """Direction of position `r` relative to self"""
+        """Direction of position `r` relative to obstacle surface"""
         d = r - self.position
         return d / np.linalg.norm(d)
