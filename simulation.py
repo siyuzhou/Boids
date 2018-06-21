@@ -44,13 +44,15 @@ def main():
     region = (-100, 100, -100, 100)
     env = Environment2D(region)
     for _ in range(ARGS.agents):
-        env.add_agent(Boid.random(
-            100, 15, comfort_zone=3, speed_cap=15, ndim=2))
+        boid = Boid(ndim=2, comfort=3, max_speed=15, max_acceleration=20)
+        boid.initialize(np.random.uniform(-100, 100, ARGS.ndim),
+                        np.random.uniform(-15, 15, ARGS.ndim))
+        env.add_agent(boid)
 
-    goal = Goal(np.random.uniform(-50, 50, 2), ndim=2)
+    goal = Goal(np.random.uniform(-50, 50, ARGS.ndim), ndim=ARGS.ndim)
     env.add_goal(goal)
     # Create a sphere obstacle within in +/- 50 of goal's position.
-    sphere = Sphere(np.random.uniform(-40, 40, 2) + goal.position, 3, ndim=2)
+    sphere = Sphere(np.random.uniform(-40, 40, ARGS.ndim) + goal.position, 3, ndim=ARGS.ndim)
     env.add_obstacle(sphere)
 
     if ARGS.animation:  # Generate animation
@@ -94,6 +96,8 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--ndim', type=int, default=2,
+                        help='dimension of space.')
     parser.add_argument('--agents', type=int, default=100,
                         help='number of agents')
     parser.add_argument('--steps', type=int, default=1000,

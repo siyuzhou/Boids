@@ -3,6 +3,7 @@ import numpy as np
 
 class Obstacle:
     def __init__(self, position, ndim=None):
+        """Base class `Obstacle`."""
         self._ndim = ndim if ndim else 3
 
         self._position = np.zeros(self._ndim)
@@ -24,6 +25,7 @@ class Obstacle:
         raise NotImplementedError()
 
     def direction(self, r):
+        """Direction of position `r` relative to self"""
         raise NotImplementedError()
 
 
@@ -66,5 +68,6 @@ class Sphere(Obstacle):
         return d
 
     def direction(self, r):
+        """Direction of position `r` relative to self"""
         d = r - self.position
         return d / np.linalg.norm(d)
