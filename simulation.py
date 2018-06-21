@@ -45,7 +45,7 @@ def main():
     region = (-100, 100, -100, 100)
     env = Environment2D(region)
     for _ in range(ARGS.agents):
-        boid = Boid(ndim=2, comfort=3, max_speed=15, max_acceleration=20)
+        boid = Boid(ndim=2, comfort=3, max_speed=10, max_acceleration=20)
         boid.initialize(np.random.uniform(-100, 100, ARGS.ndim),
                         np.random.uniform(-15, 15, ARGS.ndim))
         env.add_agent(boid)
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                         help='number of simulation steps')
     parser.add_argument('--instances', type=int, default=1,
                         help='number of simulation instances')
-    parser.add_argument('--dt', type=float, default=0.1,
+    parser.add_argument('--dt', type=float, default=0.05,
                         help='time resolution')
     parser.add_argument('--save-name', type=str,
                         help='name of the save file')
