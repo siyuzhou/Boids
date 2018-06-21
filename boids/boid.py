@@ -149,7 +149,7 @@ class Boid:
             turn_direction = self.direction * cos_theta - obstacle_direction
             turn_direction = turn_direction / np.linalg.norm(turn_direction)
             # Stronger the obstrution, stronger the turn.
-            return turn_direction * (self.comfort - normal_distance)
+            return turn_direction * (self.comfort - normal_distance) ** 2
 
         # Return 0 if obstacle does not obstruct.
         return np.zeros(self.ndim)
@@ -162,24 +162,24 @@ class Boid:
             return self.velocity / self.speed
 
         # The urge to chase the goal is stronger when farther.
-        return goal.position - self.position
+        offset = goal.position - self.position
+        distance = np.linalg.norm(offset)
+        target_speed = self.max_speed * min(1, distance / 20)
+        target_velocity = target_speed * offset / distance
+        return target_velocity - self.velocity
 
     def decide(self, goals):
         """Make decision for acceleration."""
         c1 = 0.08
         c2 = 1
         c3 = 0.2
-        c4 = 3
-        g = 0.05
+        c4 = 2
+        g = 0.5
 
         goal_steering = np.zeros(self.ndim)
-        squared_norm = 0
 
         for goal in goals:
             goal_steering += self._goal_seeking(goal) * goal.priority
-            squared_norm += goal.priority ** 2
-
-        goal_steering /= np.sqrt(squared_norm)
 
         self._acceleration = (c1 * self._cohesion() +
                               c2 * self._seperation() +

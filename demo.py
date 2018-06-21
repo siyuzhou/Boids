@@ -45,16 +45,18 @@ def main():
     region = (-100, 100, -100, 100)
     env = Environment2D(region)
     for _ in range(ARGS.agents):
-        boid = Boid(ndim=2, comfort=3, max_speed=15, max_acceleration=20)
+        boid = Boid(ndim=2, comfort=3, max_speed=10, max_acceleration=20)
         boid.initialize(np.random.uniform(10, 100, 2),
                         np.random.uniform(-15, 15, 2))
         env.add_agent(boid)
 
-    goal = Goal(np.random.uniform(-80, -20, 2), ndim=2)
+    goal = Goal(np.random.uniform(-40, -20, 2), ndim=2)
     env.add_goal(goal)
     # Create a sphere obstacle within in +/- 50 of goal's position.
-    sphere = Sphere(np.random.uniform(-30, 30, 2), 8, ndim=2)
-    env.add_obstacle(sphere)
+    sphere1 = Sphere(np.random.uniform(-20, 20, 2), 8, ndim=2)
+    sphere2 = Sphere(np.random.uniform(-20, 20, 2), 8, ndim=2)
+    env.add_obstacle(sphere1)
+    env.add_obstacle(sphere2)
 
     animate(env, region)
 
