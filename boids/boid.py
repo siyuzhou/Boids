@@ -170,7 +170,7 @@ class Boid:
 
     def decide(self, goals):
         """Make decision for acceleration."""
-        c1 = 0.08
+        c1 = 0.2
         c2 = 1
         c3 = 0.2
         c4 = 2
