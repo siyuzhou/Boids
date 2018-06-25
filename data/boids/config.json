@@ -1,0 +1,22 @@
+{
+    "edge_types": 4,
+    "encoder": "mlp",
+    "encoder_params": {
+        "hidden_units": [
+            512,
+            512
+        ],
+        "dropout": 0.0,
+        "batch_norm": false
+    },
+    "decoder": "mlp",
+    "decoder_params": {
+        "hidden_units": [
+            256,
+            256
+        ],
+        "dropout": 0.0,
+        "batch_norm": false
+    },
+    "learning_rate": 0.0005
+}

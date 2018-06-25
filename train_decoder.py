@@ -1,5 +1,6 @@
 import os
 import argparse
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -12,7 +13,8 @@ def decoder_model_fn(features, labels, mode, params):
     pred = gnn.decoder.decoder_fn[params['decoder']](
         features,
         params['decoder_params'],
-        training=(mode == tf.estimator.ModeKeys.TRAIN))
+        training=(mode == tf.estimator.ModeKeys.TRAIN)
+    )
 
     predictions = {'state_next_step': pred}
 
@@ -23,33 +25,37 @@ def decoder_model_fn(features, labels, mode, params):
                                         pred[:, :-1, :, :])
 
     if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.0004)
+        learning_rate = tf.train.exponential_decay(
+            learning_rate=params['learning_rate'],
+            global_step=tf.train.get_global_step(),
+            decay_steps=100,
+            decay_rate=0.95,
+            staircase=True
+        )
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = optimizer.minimize(loss=loss,
                                       global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
-    # eval accuracy
-    eval_metric_ops = {'eval_loss': tf.metrics.mean_squared_error(features['time_series'][:, 1:, :, :],
-                                                                  pred[:, :-1, :, :])}
+    # Use the loss between adjacent steps in original time_series as baseline
+    time_series_loss_baseline = tf.metrics.mean_squared_error(features['time_series'][:, 1:, :, :],
+                                                              features['time_series'][:, :-1, :, :])
+    eval_metric_ops = {'time_series_loss_baseline': time_series_loss_baseline}
     return tf.estimator.EstimatorSpec(
         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
 def main():
-    model_params = {
-        'decoder': 'mlp',
-        'decoder_params': {
-            'hidden_units': [ARGS.hidden_units, ARGS.hidden_units],
-            'dropout': ARGS.dropout,
-            'batch_norm': ARGS.batch_norm}}
+    with open(ARGS.config) as f:
+        model_params = json.load(f)
 
     print('Loading data...')
     train_data, train_edge, test_data, test_edge = load_data(
         ARGS.data_dir, ARGS.data_transpose)
 
     # Convert int labels to one hot vectors.
-    train_edge = gnn.utils.one_hot(train_edge, ARGS.edge_types, np.float32)
-    test_edge = gnn.utils.one_hot(test_edge, ARGS.edge_types, np.float32)
+    train_edge = gnn.utils.one_hot(train_edge, model_params['edge_types'], np.float32)
+    test_edge = gnn.utils.one_hot(test_edge, model_params['edge_types'], np.float32)
 
     mlp_decoder_regressor = tf.estimator.Estimator(
         model_fn=decoder_model_fn,
@@ -72,17 +78,20 @@ def main():
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={'time_series': test_data,
            'edge_type': test_edge},
+        batch_size=ARGS.batch_size,
         num_epochs=1,
         shuffle=False
     )
     eval_results = mlp_decoder_regressor.evaluate(input_fn=eval_input_fn)
-    print("Validation set:", eval_results)
+    # print("Validation set:", eval_results)
 
     # Prediction
     predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={'time_series': test_data[:1],
-           'edge_type': test_edge[:1]},
-        shuffle=False)
+        x={'time_series': test_data[:10],
+           'edge_type': test_edge[:10]},
+        batch_size=ARGS.batch_size,
+        shuffle=False
+    )
 
     prediction = mlp_decoder_regressor.predict(input_fn=predict_input_fn)
     prediction = np.array([pred['state_next_step'] for pred in prediction])
@@ -95,20 +104,16 @@ if __name__ == '__main__':
                         help='data directory')
     parser.add_argument('--data-transpose', type=int, nargs=4, default=None,
                         help='axes for data transposition')
+    parser.add_argument('--config', type=str,
+                        help='model config file')
     parser.add_argument('--log-dir', type=str,
                         help='log directory')
-    parser.add_argument('--edge-types', type=int,
-                        help='number of edge types')
-    parser.add_argument('--hidden-units', type=int,
-                        help='number of units in a hidden layer')
-    parser.add_argument('--dropout', type=float, default=0.,
-                        help='dropout rate')
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of training steps')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
-    parser.add_argument('--batch-norm', action='store_true', default=False,
-                        help='turn on batch normalization')
+    parser.add_argument('--max-timestep', type=int, default=None,
+                        help='max timestep allowed for timeseries data')
     parser.add_argument('--no-train', action='store_true', default=False,
                         help='skip training and use for evaluation only')
     ARGS = parser.parse_args()

@@ -4,7 +4,7 @@ import tensorflow as tf
 from .modules import *
 
 
-def mlp_encoder(features, params, training=False):
+def mlp_encoder(features, classes, params, training=False):
     # Tensor `features` has shape [num_sims, time_steps, num_agents, ndims].
     time_steps, num_agents, ndims = features.shape.as_list()[1:]
     # Input Layer
@@ -40,7 +40,7 @@ def mlp_encoder(features, params, training=False):
                           params['batch_norm'],
                           training=training)
 
-    edge_type = tf.layers.dense(msg_edge, params['edge_types'])
+    edge_type = tf.layers.dense(msg_edge, classes)
 
     return edge_type
 

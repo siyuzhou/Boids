@@ -1,4 +1,6 @@
+import os
 import argparse
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -10,6 +12,7 @@ from data_loader import load_data
 def encoder_model_fn(features, labels, mode, params):
     logits = gnn.encoder.encoder_fn[params['encoder']](
         features,
+        params['edge_types'],
         params['encoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
@@ -28,7 +31,14 @@ def encoder_model_fn(features, labels, mode, params):
         labels=labels, predictions=predictions["classes"], name="accuracy")
 
     if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.0004)
+        learning_rate = tf.train.exponential_decay(
+            learning_rate=params['learning_rate'],
+            global_step=tf.train.get_global_step(),
+            decay_steps=100,
+            decay_rate=0.95,
+            staircase=True
+        )
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = optimizer.minimize(loss=loss,
                                       global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
@@ -40,15 +50,8 @@ def encoder_model_fn(features, labels, mode, params):
 
 
 def main():
-    model_params = {
-        'encoder': 'mlp',
-        'encoder_params': {
-            'hidden_units': [ARGS.hidden_units, ARGS.hidden_units],
-            'dropout': ARGS.dropout,
-            'batch_norm': ARGS.batch_norm,
-            'edge_types': ARGS.edge_types
-        }
-    }
+    with open(ARGS.config) as f:
+        model_params = json.load(f)
 
     print('Loading data...')
     train_data, train_edge, test_data, test_edge = load_data(
@@ -81,6 +84,15 @@ def main():
     eval_results = mlp_encoder_classifier.evaluate(input_fn=eval_input_fn)
     print("Validation set:", eval_results)
 
+    # Predictoin
+    pred_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x=test_data,
+        shuffle=False
+    )
+    prediction = mlp_encoder_classifier.predict(input_fn=pred_input_fn)
+    predicted_edge_type = [pred['classes'] for pred in prediction]
+    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), predicted_edge_type)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -88,20 +100,14 @@ if __name__ == '__main__':
                         help='data directory')
     parser.add_argument('--data-transpose', type=int, nargs=4, default=None,
                         help='axes for data transposition')
+    parser.add_argument('--config', type=str,
+                        help='model config file')
     parser.add_argument('--log-dir', type=str,
                         help='log directory')
-    parser.add_argument('--hidden-units', type=int,
-                        help='number of units in a hidden layer')
-    parser.add_argument('--dropout', type=float, default=0.,
-                        help='dropout rate')
-    parser.add_argument('--edge-types', type=int,
-                        help='number of edge types')
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of training steps')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
-    parser.add_argument('--batch-norm', action='store_true', default=False,
-                        help='turn on batch normalization')
     parser.add_argument('--no-train', action='store_true', default=False,
                         help='skip training and use for evaluation only')
     ARGS = parser.parse_args()

@@ -103,8 +103,9 @@ ENV/
 # Jupyter Notebook
 *.ipynb
 
-# macOS
+# macOS, Linux
 .DS_Store
+.directory
 
 # vscode
 .vscode
