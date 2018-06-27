@@ -121,18 +121,10 @@ if __name__ == '__main__':
                         help='model config file')
     parser.add_argument('--log-dir', type=str,
                         help='log directory')
-    parser.add_argument('--edge-types', type=int,
-                        help='number of edge types')
-    parser.add_argument('--hidden-units', type=int,
-                        help='number of units in a hidden layer')
-    parser.add_argument('--dropout', type=float, default=0.,
-                        help='dropout rate')
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of training steps')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
-    parser.add_argument('--batch-norm', action='store_true', default=False,
-                        help='turn on batch normalization')
     parser.add_argument('--no-train', action='store_true', default=False,
                         help='skip training and use for evaluation only')
     ARGS = parser.parse_args()
