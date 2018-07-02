@@ -33,8 +33,15 @@ def model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    loss = tf.losses.mean_squared_error(time_series[:, 1:, :, :],
-                                        state_next_step[:, :-1, :, :])
+    trajectory_loss = tf.losses.mean_squared_error(time_series[:, 1:, :, :],
+                                                   state_next_step[:, :-1, :, :])
+
+    edge_kl_loss = tf.losses.sparse_softmax_cross_entropy(
+        labels=predictions['edge_type'],
+        logits=infered_edge_type
+    )
+
+    loss = trajectory_loss / 5e-5 - edge_kl_loss
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(
@@ -50,12 +57,16 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Use the loss between adjacent steps in original time_series as baseline
+    trajectory_loss_eval = tf.metrics.mean_squared_error(time_series[:, 1:, :, :],
+                                                         state_next_step[:, :-1, :, :])
+
     time_series_loss_baseline = tf.metrics.mean_squared_error(time_series[:, 1:, :, :],
                                                               time_series[:, :-1, :, :])
     edge_type_accuracy = tf.metrics.accuracy(
         labels=edge_type, predictions=predictions['edge_type'])
 
-    eval_metric_ops = {'time_series_loss_baseline': time_series_loss_baseline,
+    eval_metric_ops = {'trajectory_loss': trajectory_loss_eval,
+                       'time_series_loss_baseline': time_series_loss_baseline,
                        'edge_type_accuracy': edge_type_accuracy}
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
                                       eval_metric_ops=eval_metric_ops)

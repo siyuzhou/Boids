@@ -7,7 +7,7 @@ def mlp_layers(inputs, layers, dropout=0., batch_norm=False, training=False):
     for units in layers[:-1]:
         h = tf.layers.dense(h, units, activation=tf.nn.relu)
         h = tf.layers.dropout(h, dropout, training=training)
-    
+
     output = tf.layers.dense(h, layers[-1], activation=tf.nn.relu)
     # shape [num_sims, time_steps, num_edges, out_units]
 
