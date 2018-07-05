@@ -33,18 +33,22 @@ def main():
         goal = Goal(np.random.uniform(-50, 50, ARGS.ndim), ndim=ARGS.ndim)
         env.add_goal(goal)
         # Create a sphere obstacle within in +/- 50 of goal's position.
-        sphere = Sphere(np.random.uniform(-30, 30, ARGS.ndim) + goal.position, 8, ndim=ARGS.ndim)
-        env.add_obstacle(sphere)
+        spheres = []
+        for _ in range(ARGS.obstacles):
+            sphere = Sphere(np.random.uniform(-30, 30, ARGS.ndim) +
+                            goal.position, 8, ndim=ARGS.ndim)
+            spheres.append(sphere)
+            env.add_obstacle(sphere)
 
         position_data = []
         velocity_data = []
         for _ in range(ARGS.steps):
             env.update(ARGS.dt)
             position_data.append([goal.position for goal in env.goals] +
-                                 [sphere.position] +
+                                 [sphere.position for sphere in spheres] +
                                  [boid.position.copy() for boid in env.population])
             velocity_data.append([np.zeros(2) for goal in env.goals] +
-                                 [np.zeros(2)] +
+                                 [np.zeros(2) for sphere in spheres] +
                                  [boid.velocity.copy() for boid in env.population])
 
         position_data_all.append(position_data)
@@ -68,6 +72,8 @@ if __name__ == '__main__':
                         help='dimension of space.')
     parser.add_argument('--agents', type=int, default=100,
                         help='number of agents')
+    parser.add_argument('--obstacles', type=int, default=0,
+                        help='number of obstacles')
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of simulation steps')
     parser.add_argument('--instances', type=int, default=1,
