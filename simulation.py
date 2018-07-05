@@ -25,7 +25,7 @@ def main():
 
         env = Environment2D(region)
         for _ in range(ARGS.agents):
-            boid = Boid(ndim=2, comfort=3, max_speed=10, max_acceleration=20)
+            boid = Boid(ndim=2, vision=ARGS.vision, comfort=3, max_speed=10, max_acceleration=20)
             boid.initialize(np.random.uniform(-100, 100, ARGS.ndim),
                             np.random.uniform(-15, 15, ARGS.ndim))
             env.add_agent(boid)
@@ -72,8 +72,13 @@ if __name__ == '__main__':
                         help='dimension of space.')
     parser.add_argument('--agents', type=int, default=100,
                         help='number of agents')
+<<<<<<< HEAD
     parser.add_argument('--obstacles', type=int, default=0,
                         help='number of obstacles')
+=======
+    parser.add_argument('--vision', type=float, default=None,
+                        help='vision range to determine frequency of interaction')
+>>>>>>> Add `vision` argument in the main.
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of simulation steps')
     parser.add_argument('--instances', type=int, default=1,
