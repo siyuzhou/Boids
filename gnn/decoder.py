@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from .modules import *
+from .utils import fc_matrix
 
 
 def mlp_decoder(features,  params, training=False):
@@ -12,8 +13,7 @@ def mlp_decoder(features,  params, training=False):
     num_types = edge_type.shape.as_list()[-1]
 
     # Send encoded state to edges.
-    edge_sources, edge_targets = np.where(
-        np.ones((num_agents, num_agents)) - np.eye(num_agents))
+    edge_sources, edge_targets = np.where(fc_matrix(num_agents))
     # One-hot representation of indices of edge sources and targets.
     # `edge_sources` and `edge_targets` in shape [num_edges, num_agents].
     edge_sources = tf.one_hot(edge_sources, num_agents)

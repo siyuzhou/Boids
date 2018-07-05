@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from .modules import *
+from .utils import fc_matrix
 
 
 def node_to_edge(node_state, edge_sources, edge_targets):
@@ -40,8 +41,7 @@ def mlp_encoder(features, classes, params, training=False):
 
     # Send encoded state to edges.
     # `edge_sources` and `edge_targets` in shape [num_edges, num_agents].
-    edge_sources, edge_targets = np.where(
-        np.ones((num_agents, num_agents)) - np.eye(num_agents))
+    edge_sources, edge_targets = np.where(fc_matrix(num_agents))
     # One-hot representation of indices of edge sources and targets.
     edge_sources = tf.one_hot(edge_sources, num_agents)
     edge_targets = tf.one_hot(edge_targets, num_agents)
