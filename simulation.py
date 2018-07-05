@@ -72,13 +72,10 @@ if __name__ == '__main__':
                         help='dimension of space.')
     parser.add_argument('--agents', type=int, default=100,
                         help='number of agents')
-<<<<<<< HEAD
     parser.add_argument('--obstacles', type=int, default=0,
                         help='number of obstacles')
-=======
     parser.add_argument('--vision', type=float, default=None,
                         help='vision range to determine frequency of interaction')
->>>>>>> Add `vision` argument in the main.
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of simulation steps')
     parser.add_argument('--instances', type=int, default=1,
