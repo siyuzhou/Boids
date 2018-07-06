@@ -38,8 +38,8 @@ def model_fn(features, labels, mode, params):
     trajectory_loss = tf.losses.mean_squared_error(time_series[:, 1:, :, :],
                                                    state_next_step[:, :-1, :, :])
 
-    edge_kl_loss = tf.losses.softmax_cross_entropy_with_logits_v2(
-        labels=predictions['probabilities'],
+    edge_kl_loss = tf.losses.softmax_cross_entropy(
+        onehot_labels=predictions['probabilities'],
         logits=edge_type_logits
     )
 
