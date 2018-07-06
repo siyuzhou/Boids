@@ -13,22 +13,24 @@ def model_fn(features, labels, mode, params):
     time_series, edge_type = features, labels
 
     # Infer edge_type with encoder.
-    infered_edge_type = gnn.encoder.encoder_fn[params['encoder']](
+    edge_type_logits = gnn.encoder.encoder_fn[params['encoder']](
         time_series,
         params['edge_types'],
         params['encoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
+    edge_type_prob = tf.nn.softmax(edge_type_logits)
     # Predict state of next steps with decoder
-    # using time_series and infered_edge_type
+    # using time_series and edge_type_logits
     state_next_step = gnn.decoder.decoder_fn[params['decoder']](
         {'time_series': time_series,
-         'edge_type': infered_edge_type},
+         'edge_type': edge_type_prob},
         params['decoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {'state_next_step': state_next_step,
-                   'edge_type': tf.argmax(input=infered_edge_type, axis=-1)}
+                   'probabilities': tf.nn.softmax(edge_type_logits),
+                   'edge_type': tf.argmax(input=edge_type_logits, axis=-1)}
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
@@ -36,12 +38,12 @@ def model_fn(features, labels, mode, params):
     trajectory_loss = tf.losses.mean_squared_error(time_series[:, 1:, :, :],
                                                    state_next_step[:, :-1, :, :])
 
-    edge_kl_loss = tf.losses.sparse_softmax_cross_entropy(
-        labels=predictions['edge_type'],
-        logits=infered_edge_type
+    edge_kl_loss = tf.losses.softmax_cross_entropy_with_logits_v2(
+        labels=predictions['probabilities'],
+        logits=edge_type_logits
     )
 
-    loss = trajectory_loss / 5e-5 - edge_kl_loss
+    loss = trajectory_loss / ARGS.variance - edge_kl_loss
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(
@@ -117,9 +119,9 @@ def main():
 
     prediction = mlp_gnn_regressor.predict(input_fn=predict_input_fn)
     prediction = [(pred['state_next_step'], pred['edge_type']) for pred in prediction]
-    state_next_step, infered_edge_type = zip(*prediction)
+    state_next_step, edge_type_logits = zip(*prediction)
     np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), state_next_step)
-    np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), infered_edge_type)
+    np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), edge_type_logits)
 
 
 if __name__ == '__main__':
@@ -132,6 +134,8 @@ if __name__ == '__main__':
                         help='model config file')
     parser.add_argument('--log-dir', type=str,
                         help='log directory')
+    parser.add_argument('--variance', type=float, default=1e-5,
+                        help='variance that balances trajectory loss and edge loss')
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of training steps')
     parser.add_argument('--batch-size', type=int, default=128,
