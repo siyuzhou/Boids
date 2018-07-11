@@ -43,7 +43,7 @@ def model_fn(features, labels, mode, params):
         logits=edge_type_logits
     )
 
-    loss = trajectory_loss / ARGS.variance - edge_kl_loss
+    loss = trajectory_loss / params['variance'] - edge_kl_loss
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(
@@ -134,8 +134,6 @@ if __name__ == '__main__':
                         help='model config file')
     parser.add_argument('--log-dir', type=str,
                         help='log directory')
-    parser.add_argument('--variance', type=float, default=1e-5,
-                        help='variance that balances trajectory loss and edge loss')
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of training steps')
     parser.add_argument('--batch-size', type=int, default=128,
