@@ -25,7 +25,8 @@ def main():
 
         env = Environment2D(region)
         for _ in range(ARGS.agents):
-            boid = Boid(ndim=2, vision=ARGS.vision, comfort=3, max_speed=10, max_acceleration=20)
+            boid = Boid(ndim=2, vision=ARGS.vision, comfort=ARGS.comfort,
+                        max_speed=10, max_acceleration=20)
             boid.initialize(np.random.uniform(-100, 100, ARGS.ndim),
                             np.random.uniform(-15, 15, ARGS.ndim))
             env.add_agent(boid)
@@ -54,12 +55,6 @@ def main():
         position_data_all.append(position_data)
         velocity_data_all.append(velocity_data)
 
-    if ARGS.data_transpose:
-        # position_data_all shape: [instances, steps, agents, ndims]
-        # After transposition: [instances, agents, steps, ndims]
-        position_data_all = np.transpose(position_data_all, ARGS.data_transpose)
-        velocity_data_all = np.transpose(velocity_data_all, ARGS.data_transpose)
-
     print('Simulations {0}/{0} completed.'.format(ARGS.instances))
 
     np.save(os.path.join(ARGS.save_dir, ARGS.prefix+'_position.npy'), position_data_all)
@@ -76,6 +71,8 @@ if __name__ == '__main__':
                         help='number of obstacles')
     parser.add_argument('--vision', type=float, default=None,
                         help='vision range to determine frequency of interaction')
+    parser.add_argument('--comfort', type=float, default=3,
+                        help='boid comfort zone size')
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of simulation steps')
     parser.add_argument('--instances', type=int, default=1,
@@ -86,8 +83,6 @@ if __name__ == '__main__':
                         help='name of the save directory')
     parser.add_argument('--prefix', type=str, default='',
                         help='prefix for save files')
-    parser.add_argument('--data-transpose', type=int, nargs=4, default=None,
-                        help='axes for data transposition')
 
     ARGS = parser.parse_args()
 
