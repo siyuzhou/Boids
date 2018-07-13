@@ -29,7 +29,7 @@ def model_fn(features, labels, mode, params):
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {'state_next_step': state_next_step,
-                   'probabilities': tf.nn.softmax(edge_type_logits),
+                   'probabilities': edge_type_prob,
                    'edge_type': tf.argmax(input=edge_type_logits, axis=-1)}
 
     if mode == tf.estimator.ModeKeys.PREDICT:
