@@ -19,5 +19,5 @@
         "batch_norm": false
     },
     "learning_rate": 0.0005,
-    "variance": 1e-4
+    "variance": 1e-3
 }
