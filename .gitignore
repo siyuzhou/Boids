@@ -100,8 +100,6 @@ ENV/
 # mypy
 .mypy_cache/
 
-# Jupyter Notebook
-*.ipynb
 
 # macOS, Linux
 .DS_Store
@@ -112,6 +110,3 @@ ENV/
 
 # data
 *.npy
-
-# demo
-demo
