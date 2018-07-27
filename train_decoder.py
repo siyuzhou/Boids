@@ -13,10 +13,11 @@ def decoder_model_fn(features, labels, mode, params):
     pred = gnn.decoder.decoder_fn[params['decoder']](
         features,
         params['decoder_params'],
+        params['pred_steps'],
         training=(mode == tf.estimator.ModeKeys.TRAIN)
     )
 
-    predictions = {'state_next_step': pred}
+    predictions = {'state_next_steps': pred}
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
@@ -30,7 +31,8 @@ def decoder_model_fn(features, labels, mode, params):
             global_step=tf.train.get_global_step(),
             decay_steps=100,
             decay_rate=0.95,
-            staircase=True
+            staircase=True,
+            name='learning_rate'
         )
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = optimizer.minimize(loss=loss,
@@ -57,6 +59,8 @@ def main():
     train_edge = gnn.utils.one_hot(train_edge, model_params['edge_types'], np.float32)
     test_edge = gnn.utils.one_hot(test_edge, model_params['edge_types'], np.float32)
 
+    model_params['pred_steps'] = ARGS.pred_steps
+
     mlp_decoder_regressor = tf.estimator.Estimator(
         model_fn=decoder_model_fn,
         params=model_params,
@@ -72,7 +76,7 @@ def main():
         )
 
         mlp_decoder_regressor.train(input_fn=train_input_fn,
-                                    steps=ARGS.steps)
+                                    steps=ARGS.train_steps)
 
     # Evaluation
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -94,7 +98,7 @@ def main():
     )
 
     prediction = mlp_decoder_regressor.predict(input_fn=predict_input_fn)
-    prediction = np.array([pred['state_next_step'] for pred in prediction])
+    prediction = np.array([pred['state_next_steps'] for pred in prediction])
     np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), prediction)
 
 
@@ -108,12 +112,12 @@ if __name__ == '__main__':
                         help='model config file')
     parser.add_argument('--log-dir', type=str,
                         help='log directory')
-    parser.add_argument('--steps', type=int, default=1000,
+    parser.add_argument('--train-steps', type=int, default=1000,
                         help='number of training steps')
+    parser.add_argument('--pred-steps', type=int, default=1,
+                        help='number of steps the estimator predicts for time series')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
-    parser.add_argument('--max-timestep', type=int, default=None,
-                        help='max timestep allowed for timeseries data')
     parser.add_argument('--no-train', action='store_true', default=False,
                         help='skip training and use for evaluation only')
     ARGS = parser.parse_args()

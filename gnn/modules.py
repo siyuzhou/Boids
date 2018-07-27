@@ -3,7 +3,7 @@ import numpy as np
 
 
 def mlp_layers(inputs, layers, dropout=0., batch_norm=False, training=False, name=None):
-    with tf.variable_scope(name, default_name="MLP"):
+    with tf.variable_scope(name, default_name="MLP", reuse=tf.AUTO_REUSE):
         h = inputs
         for units in layers[:-1]:
             h = tf.layers.dense(h, units, activation=tf.nn.relu)

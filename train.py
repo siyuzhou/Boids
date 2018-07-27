@@ -26,6 +26,7 @@ def model_fn(features, labels, mode, params):
         {'time_series': time_series,
          'edge_type': edge_type_prob},
         params['decoder_params'],
+        params['pred_steps'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {'state_next_step': state_next_step,
@@ -78,6 +79,8 @@ def main():
     with open(ARGS.config) as f:
         model_params = json.load(f)
 
+    model_params['pred_steps'] = ARGS.pred_steps
+
     print('Loading data...')
     train_data, train_edge, test_data, test_edge = load_data(
         ARGS.data_dir, ARGS.data_transpose)
@@ -98,7 +101,7 @@ def main():
         )
 
         mlp_gnn_regressor.train(input_fn=train_input_fn,
-                                steps=ARGS.steps)
+                                steps=ARGS.train_steps)
 
     # Evaluation
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -134,8 +137,10 @@ if __name__ == '__main__':
                         help='model config file')
     parser.add_argument('--log-dir', type=str,
                         help='log directory')
-    parser.add_argument('--steps', type=int, default=1000,
+    parser.add_argument('--train-steps', type=int, default=1000,
                         help='number of training steps')
+    parser.add_argument('--pred-steps', type=int, default=1,
+                        help='number of steps the estimator predicts for time series')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
     parser.add_argument('--no-train', action='store_true', default=False,
