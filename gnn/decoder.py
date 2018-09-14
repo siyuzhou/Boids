@@ -49,7 +49,8 @@ def mlp_decoder(features, params, pred_steps, training=False):
 
                 encoded_msg_by_type = []
                 # Encode edge message by types and concatenate them.
-                for i in range(num_types):
+                start = 1 if params['skip_zero'] else 0
+                for i in range(start, num_types):
                     # mlp_encoder for one edge type.
                     encoded_msg = mlp_layers(msg_edge,
                                              params['hidden_units'],

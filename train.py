@@ -9,6 +9,32 @@ import gnn
 from data_loader import load_data
 
 
+def sample_gumbel(shape, eps=1e-20):
+    """
+    Borrowed from
+    https://github.com/vithursant/VAE-Gumbel-Softmax/blob/master/vae_gumbel_softmax.py
+    """
+    U = tf.random_uniform(shape, minval=0, maxval=1)
+    return -tf.log(-tf.log(U + eps) + eps)
+
+
+def gumbel_softmax(logits, temperature, hard=False):
+    """
+    Borrowed from
+    https://github.com/vithursant/VAE-Gumbel-Softmax/blob/master/vae_gumbel_softmax.py
+    """
+    gumbel_softmax_sample = logits + sample_gumbel(tf.shape(logits))
+    y = tf.nn.softmax(gumbel_softmax_sample / temperature)
+
+    if hard:
+        k = tf.shape(logits)[-1]
+        y_hard = tf.cast(tf.equal(y, tf.reduce_max(y, 1, keep_dims=True)),
+                         y.dtype)
+        y = tf.stop_gradient(y_hard - y) + y
+
+    return y
+
+
 def model_fn(features, labels, mode, params):
     time_series, edge_type = features, labels
 
@@ -19,7 +45,7 @@ def model_fn(features, labels, mode, params):
         params['encoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
-    edge_type_prob = tf.nn.softmax(edge_type_logits)
+    edge_type_prob = gumbel_softmax(edge_type_logits, 1)
     # Predict state of next steps with decoder
     # using time_series and edge_type_logits
     state_next_step = gnn.decoder.decoder_fn[params['decoder']](
@@ -30,7 +56,7 @@ def model_fn(features, labels, mode, params):
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {'state_next_step': state_next_step,
-                   'probabilities': edge_type_prob,
+                   'probabilities': tf.nn.softmax(edge_type_logits),
                    'edge_type': tf.argmax(input=edge_type_logits, axis=-1)}
 
     if mode == tf.estimator.ModeKeys.PREDICT:
