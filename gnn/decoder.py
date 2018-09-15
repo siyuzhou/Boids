@@ -24,6 +24,7 @@ def mlp_decoder(features, params, pred_steps, training=False):
         # Expand edge_type so that it has same number of dimensions as time_series.
         edge_type = tf.expand_dims(edge_type, 1)
         edge_type = tf.expand_dims(edge_type, 4)
+        # edge_type shape [num_sims, 1, num_edges, num_edge_types, 1]
 
     with tf.variable_scope('decoder_one_step') as scope:
         pred_time_series = tf.expand_dims(time_series[:, ::pred_steps, :, :], 2)
@@ -64,11 +65,10 @@ def mlp_decoder(features, params, pred_steps, training=False):
                 encoded_msg_by_type = tf.stack(encoded_msg_by_type, axis=3)
                 # shape [num_sims, time_steps, num_edges, num_types, out_units]
 
-                # Expand edge_type shape to [num_sims, 1, num_edges, num_edge_types, 1]
                 with tf.name_scope('edge_encoding_avg'):
                     # Sum of the edge encoding from all possible types.
                     encoded_msg_sum = tf.reduce_sum(tf.multiply(encoded_msg_by_type,
-                                                                edge_type),
+                                                                edge_type[:, :, :, start:, :]),
                                                     axis=3)
                     # shape [num_sims, time_steps, num_edges, out_units]
 
