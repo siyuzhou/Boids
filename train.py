@@ -70,7 +70,7 @@ def model_fn(features, labels, mode, params):
         logits=edge_type_logits
     )
 
-    loss = trajectory_loss / params['variance'] - edge_kl_loss
+    loss = trajectory_loss / params['variance']  # - edge_kl_loss
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(

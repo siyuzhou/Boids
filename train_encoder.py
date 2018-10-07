@@ -72,7 +72,7 @@ def main():
         )
 
         mlp_encoder_classifier.train(input_fn=train_input_fn,
-                                     steps=ARGS.steps)
+                                     steps=ARGS.train_steps)
 
     # Evaluation
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -104,7 +104,7 @@ if __name__ == '__main__':
                         help='model config file')
     parser.add_argument('--log-dir', type=str,
                         help='log directory')
-    parser.add_argument('--steps', type=int, default=1000,
+    parser.add_argument('--train-steps', type=int, default=1000,
                         help='number of training steps')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
