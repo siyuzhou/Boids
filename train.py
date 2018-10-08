@@ -45,7 +45,7 @@ def model_fn(features, labels, mode, params):
         params['encoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
-    edge_type_prob = gumbel_softmax(edge_type_logits, 1)
+    edge_type_prob = tf.nn.softmax(edge_type_logits)  # gumbel_softmax(edge_type_logits, 1)
     # Predict state of next steps with decoder
     # using time_series and edge_type_logits
     state_next_step = gnn.decoder.decoder_fn[params['decoder']](

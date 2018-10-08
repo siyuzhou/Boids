@@ -4,6 +4,7 @@
     "encoder_params": {
         "hidden_units": [
             512,
+            512,
             512
         ],
         "dropout": 0.0,
@@ -12,6 +13,7 @@
     "decoder": "mlp",
     "decoder_params": {
         "hidden_units": [
+            512,
             512,
             512
         ],
