@@ -122,7 +122,7 @@ def mlp_decoder_multisteps(features, params, pred_steps, training=False):
     pred_time_series = tf.reshape(pred_time_series[:, :, 1:, :, :],
                                   shape=[-1, num_starting_points * pred_steps, num_agents, ndims])
     # NOTE: the second dimension of pred_time_series can be larger than time_steps.
-
+    print('pred_time_series shape', pred_time_series.shape)
     # Truncate pred_time_series.
     return pred_time_series[:, :time_steps, :, :]
 
