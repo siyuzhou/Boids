@@ -10,7 +10,8 @@ def mlp_decoder_one_step(prev_step, edge_type, edge_sources, edge_targets, param
     # prev_step shape [num_sims, time_steps, num_agents, ndims]
     ndims = prev_step.shape.as_list()[-1]
 
-    num_types = edge_type.shape.as_list()[-1]
+    num_types = edge_type.shape.as_list()[-2]
+
     with tf.variable_scope(scope) as inner_scope:
         with tf.name_scope(inner_scope.original_name_scope):
             # Send encoded state to edges.
@@ -100,12 +101,13 @@ def mlp_decoder_multisteps(features, params, pred_steps, training=False):
 
     def decoder_one_step(pred_time_series):
         prev_step = pred_time_series[:, :, -1, :, :]
-        next_step = prev_step + \
-            mlp_decoder_one_step(prev_step, edge_type, edge_sources,
-                                 edge_targets, params, scope, training)
+        with tf.name_scope(scope.original_name_scope):
+            next_step = prev_step + \
+                mlp_decoder_one_step(prev_step, edge_type, edge_sources,
+                                     edge_targets, params, scope, training)
 
-        pred_time_series = tf.concat([pred_time_series, tf.expand_dims(next_step, 2)],
-                                     axis=2)
+            pred_time_series = tf.concat([pred_time_series, tf.expand_dims(next_step, 2)],
+                                         axis=2)
 
         return pred_time_series
 
@@ -122,7 +124,7 @@ def mlp_decoder_multisteps(features, params, pred_steps, training=False):
     pred_time_series = tf.reshape(pred_time_series[:, :, 1:, :, :],
                                   shape=[-1, num_starting_points * pred_steps, num_agents, ndims])
     # NOTE: the second dimension of pred_time_series can be larger than time_steps.
-    print('pred_time_series shape', pred_time_series.shape)
+
     # Truncate pred_time_series.
     return pred_time_series[:, :time_steps, :, :]
 

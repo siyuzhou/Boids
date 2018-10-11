@@ -13,10 +13,12 @@
     "decoder_params": {
         "hidden_units": [
             256,
+            256,
             256
         ],
         "dropout": 0.0,
-        "batch_norm": false
+        "batch_norm": false,
+        "skip_zero": false
     },
     "learning_rate": 0.0005,
     "variance": 1e-3
