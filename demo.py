@@ -50,13 +50,12 @@ def main():
                         np.random.uniform(-15, 15, 2))
         env.add_agent(boid)
 
-    goal = Goal(np.random.uniform(-40, -20, 2), ndim=2)
+    goal = Goal(np.random.uniform(-60, -40, 2), ndim=2)
     env.add_goal(goal)
     # Create a sphere obstacle within in +/- 50 of goal's position.
-    sphere1 = Sphere(np.random.uniform(-20, 20, 2), 8, ndim=2)
-    sphere2 = Sphere(np.random.uniform(-20, 20, 2), 8, ndim=2)
-    env.add_obstacle(sphere1)
-    env.add_obstacle(sphere2)
+    for _ in range(ARGS.obstacles):
+        sphere = Sphere(np.random.uniform(-40, 30, 2), 8, ndim=2)
+        env.add_obstacle(sphere)
 
     animate(env, region)
 
@@ -66,6 +65,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--agents', type=int, default=100,
                         help='number of agents')
+    parser.add_argument('--obstacles', type=int, default=2,
+                        help='number of obstacles')
     parser.add_argument('--steps', type=int, default=1000,
                         help='number of simulation steps')
     parser.add_argument('--dt', type=float, default=0.1,
