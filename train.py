@@ -56,7 +56,7 @@ def model_fn(features, labels, mode, params):
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {'state_next_step': state_next_step,
-                   'probabilities': tf.nn.softmax(edge_type_logits),
+                   'edge_type_prob': tf.nn.softmax(edge_type_logits),
                    'edge_type': tf.argmax(input=edge_type_logits, axis=-1)}
 
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -66,11 +66,11 @@ def model_fn(features, labels, mode, params):
                                                    state_next_step[:, :-1, :, :])
 
     edge_kl_loss = tf.losses.softmax_cross_entropy(
-        onehot_labels=predictions['probabilities'],
+        onehot_labels=predictions['edge_type_prob'],
         logits=edge_type_logits
     )
 
-    loss = trajectory_loss / params['variance']  # - edge_kl_loss
+    loss = trajectory_loss / params['variance'] - edge_kl_loss
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(
@@ -91,6 +91,7 @@ def model_fn(features, labels, mode, params):
 
     time_series_loss_baseline = tf.metrics.mean_squared_error(time_series[:, 1:, :, :],
                                                               time_series[:, :-1, :, :])
+
     edge_type_accuracy = tf.metrics.accuracy(
         labels=edge_type, predictions=predictions['edge_type'])
 
@@ -147,10 +148,10 @@ def main():
         shuffle=False)
 
     prediction = mlp_gnn_regressor.predict(input_fn=predict_input_fn)
-    prediction = [(pred['state_next_step'], pred['edge_type']) for pred in prediction]
-    state_next_step, edge_type_logits = zip(*prediction)
+    prediction = [(pred['state_next_step'], pred['edge_type_prob']) for pred in prediction]
+    state_next_step, edge_type_prob = zip(*prediction)
     np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), state_next_step)
-    np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), edge_type_logits)
+    np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), edge_type_prob)
 
 
 if __name__ == '__main__':
