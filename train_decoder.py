@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 import gnn
-from data_loader import load_data
+from gnn.data import load_data
 
 
 def decoder_model_fn(features, labels, mode, params):
