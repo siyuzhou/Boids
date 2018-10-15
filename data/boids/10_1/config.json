@@ -3,7 +3,7 @@
     "encoder": "mlp",
     "encoder_params": {
         "hidden_units": [
-            512,
+            1024,
             512,
             256
         ],
@@ -13,8 +13,8 @@
     "decoder": "mlp",
     "decoder_params": {
         "hidden_units": [
+            1024,
             512,
-            256,
             256,
             128
         ],
