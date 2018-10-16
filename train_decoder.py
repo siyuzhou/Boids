@@ -22,8 +22,10 @@ def decoder_model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    loss = tf.losses.mean_squared_error(features['time_series'][:, 1:, :, :],
-                                        pred[:, :-1, :, :])
+    expected_time_series = gnn.utils.stack_time_series(features['time_series'],
+                                                       params['pred_steps'])
+
+    loss = tf.losses.mean_squared_error(expected_time_series, pred)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(

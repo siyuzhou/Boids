@@ -37,8 +37,11 @@ def model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    trajectory_loss = tf.losses.mean_squared_error(time_series[:, 1:, :, :],
-                                                   state_next_step[:, :-1, :, :])
+    expected_time_series = gnn.utils.stack_time_series(time_series,
+                                                       params['pred_steps'])
+
+    trajectory_loss = tf.losses.mean_squared_error(expected_time_series,
+                                                   predictions['state_next_step'])
 
     edge_kl_loss = tf.losses.softmax_cross_entropy(
         onehot_labels=predictions['edge_type_prob'],
@@ -61,8 +64,8 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Use the loss between adjacent steps in original time_series as baseline
-    trajectory_loss_eval = tf.metrics.mean_squared_error(time_series[:, 1:, :, :],
-                                                         state_next_step[:, :-1, :, :])
+    trajectory_loss_eval = tf.metrics.mean_squared_error(expected_time_series,
+                                                         predictions['state_next_step'])
 
     time_series_loss_baseline = tf.metrics.mean_squared_error(time_series[:, 1:, :, :],
                                                               time_series[:, :-1, :, :])
