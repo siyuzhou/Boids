@@ -1,11 +1,10 @@
 {
-    "edge_types": 4,
+    "edge_types": 3,
     "encoder": "mlp",
     "encoder_params": {
         "hidden_units": [
-            1024,
             512,
-            256
+            512
         ],
         "dropout": 0.0,
         "batch_norm": false
@@ -13,15 +12,15 @@
     "decoder": "mlp",
     "decoder_params": {
         "hidden_units": [
-            1024,
             512,
-            256,
-            128
+            512,
+            256
         ],
         "dropout": 0.0,
         "batch_norm": false,
         "skip_zero": false
     },
+    "temperature": 3,
     "learning_rate": 0.0005,
-    "variance": 1e-3
+    "variance": 1
 }
