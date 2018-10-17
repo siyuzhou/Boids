@@ -13,18 +13,22 @@ from gnn.utils import gumbel_softmax
 def model_fn(features, labels, mode, params):
     time_series, edge_type = features, labels
 
+    # For training and evaluatin, the last 'pred_steps' cannot be used as starting points,
+    # because there would be no further ground truth to compare with.
+    known_time_series = time_series[:, :-params['pred_steps'], :, :]
+
     # Infer edge_type with encoder.
     edge_type_logits = gnn.encoder.encoder_fn[params['encoder']](
-        time_series,
+        known_time_series,
         params['edge_types'],
         params['encoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
-    edge_type_prob = tf.nn.softmax(edge_type_logits)  # gumbel_softmax(edge_type_logits, 1)
+    edge_type_prob = gumbel_softmax(edge_type_logits, params['temperature'])
     # Predict state of next steps with decoder
     # using time_series and edge_type_logits
     state_next_step = gnn.decoder.decoder_fn[params['decoder']](
-        {'time_series': time_series,
+        {'time_series': known_time_series,
          'edge_type': edge_type_prob},
         params['decoder_params'],
         params['pred_steps'],
