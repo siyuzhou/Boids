@@ -24,7 +24,10 @@ def model_fn(features, labels, mode, params):
         params['encoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
 
-    edge_type_prob = gumbel_softmax(edge_type_logits, params['temperature'])
+    if params['temperature'] == 0:  # Turn off gumbel, use softmax instead
+        edge_type_prob = tf.nn.softmax(edge_type_logits)
+    else:
+        edge_type_prob = gumbel_softmax(edge_type_logits, params['temperature'])
     # Predict state of next steps with decoder
     # using time_series and edge_type_logits
     state_next_step = gnn.decoder.decoder_fn[params['decoder']](
