@@ -50,12 +50,17 @@ def model_fn(features, labels, mode, params):
     trajectory_loss = tf.losses.mean_squared_error(expected_time_series,
                                                    predictions['state_next_step'])
 
+    edge_type_loss = tf.losses.sparse_softmax_cross_entropy(labels=edge_type,
+                                                            logits=edge_type_logits)
+
     edge_kl_loss = tf.losses.softmax_cross_entropy(
         onehot_labels=predictions['edge_type_prob'],
         logits=edge_type_logits
     )
 
-    loss = trajectory_loss / params['variance'] - edge_kl_loss
+    loss = trajectory_loss  # / params['variance'] - edge_kl_loss
+    if params['supervised']:
+        loss += edge_type_loss
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(
@@ -92,6 +97,7 @@ def main():
         model_params = json.load(f)
 
     model_params['pred_steps'] = ARGS.pred_steps
+    model_params['supervised'] = ARGS.supervised
 
     print('Loading data...')
     train_data, train_edge, test_data, test_edge = load_data(
@@ -155,6 +161,8 @@ if __name__ == '__main__':
                         help='number of steps the estimator predicts for time series')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
+    parser.add_argument('--supervised', action='store_true', default=False,
+                        help='use edge type labels to constrain encoder')
     parser.add_argument('--no-train', action='store_true', default=False,
                         help='skip training and use for evaluation only')
     ARGS = parser.parse_args()
