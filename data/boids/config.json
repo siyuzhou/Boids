@@ -20,7 +20,7 @@
         "batch_norm": false,
         "skip_zero": false
     },
-    "temperature": 3,
+    "temperature": 0,
     "learning_rate": 0.0005,
     "variance": 1
 }
