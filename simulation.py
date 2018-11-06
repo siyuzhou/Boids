@@ -73,11 +73,11 @@ if __name__ == '__main__':
                         help='vision range to determine frequency of interaction')
     parser.add_argument('--comfort', type=float, default=3,
                         help='boid comfort zone size')
-    parser.add_argument('--steps', type=int, default=1000,
+    parser.add_argument('--steps', type=int, default=200,
                         help='number of simulation steps')
     parser.add_argument('--instances', type=int, default=1,
                         help='number of simulation instances')
-    parser.add_argument('--dt', type=float, default=0.05,
+    parser.add_argument('--dt', type=float, default=0.1,
                         help='time resolution')
     parser.add_argument('--save-dir', type=str,
                         help='name of the save directory')
