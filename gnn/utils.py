@@ -38,8 +38,8 @@ def gumbel_softmax(logits, temperature, hard=False):
     return y
 
 
-def stack_time_series(time_series, pred_steps, axis=2):
+def stack_time_series(time_series, seg_len, axis=2):
     # time_series shape [num_sims, time_steps, num_agents, ndims]
-    return tf.stack([time_series[:, i:-pred_steps+i, :, :] for i in range(1, pred_steps)] +
-                    [time_series[:, pred_steps:, :, :]],
+    time_steps = time_series.shape.as_list()[1]
+    return tf.stack([time_series[:, i:time_steps+1-seg_len+i, :, :] for i in range(seg_len)],
                     axis=axis)

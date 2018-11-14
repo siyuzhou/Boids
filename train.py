@@ -44,7 +44,7 @@ def model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    expected_time_series = gnn.utils.stack_time_series(time_series,
+    expected_time_series = gnn.utils.stack_time_series(time_series[:, 1:, :, :],
                                                        params['pred_steps'])
 
     trajectory_loss = tf.losses.mean_squared_error(expected_time_series,

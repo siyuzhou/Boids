@@ -13,13 +13,14 @@
     "decoder_params": {
         "hidden_units": [
             256,
-            256
+            256,
+            128
         ],
         "dropout": 0.0,
         "batch_norm": false,
         "skip_zero": false
     },
-    "temperature": 1,
+    "temperature": 0,
     "learning_rate": 0.0005,
-    "variance": 1e-4
+    "variance": 1
 }
