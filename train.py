@@ -141,7 +141,7 @@ def main():
     prediction = mlp_gnn_regressor.predict(input_fn=predict_input_fn)
     prediction = [(pred['state_next_step'], pred['edge_type_prob']) for pred in prediction]
     state_next_step, edge_type_prob = zip(*prediction)
-    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), state_next_step)
+    np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(ARGS.pred_steps)), state_next_step)
     np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), edge_type_prob)
 
 
