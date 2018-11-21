@@ -96,7 +96,7 @@ def main():
 
     prediction = cnn_multistep_regressor.predict(input_fn=predict_input_fn)
     prediction = np.array([pred['next_steps'] for pred in prediction])
-    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), prediction)
+    np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(ARGS.pred_steps)), prediction)
 
 
 if __name__ == '__main__':
