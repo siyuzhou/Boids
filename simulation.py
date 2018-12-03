@@ -7,6 +7,24 @@ import numpy as np
 from boids import *
 
 
+def random_obstacle(position1, position2, r):
+    """Return an obstacle of radius r randomly placed between position1 and position2"""
+    d = position1 - position2
+    d_len = np.sqrt(d.dot(d))
+    cos = d[0] / d_len
+    sin = d[1] / d_len
+
+    # Generat random x and y assuming d is aligned with x axis.
+    x = np.random.uniform(2+r, d_len-r)
+    y = np.random.uniform(-r, r)
+
+    # Rotate the alignment back to the actural d.
+    true_x = x * cos + y * sin + position2[0]
+    true_y = x * sin - y * cos + position2[1]
+
+    return Sphere([true_x, true_y], r, ndim=2)
+
+
 def main():
     if not os.path.exists(ARGS.save_dir):
         os.makedirs(ARGS.save_dir)
@@ -27,17 +45,18 @@ def main():
         for _ in range(ARGS.agents):
             boid = Boid(ndim=2, vision=ARGS.vision, comfort=ARGS.comfort,
                         max_speed=10, max_acceleration=20)
-            boid.initialize(np.random.uniform(-100, 100, ARGS.ndim),
-                            np.random.uniform(-15, 15, ARGS.ndim))
+            boid.initialize(np.random.uniform(-80, 80, 2),
+                            np.random.uniform(-15, 15, 2))
             env.add_agent(boid)
 
-        goal = Goal(np.random.uniform(-50, 50, ARGS.ndim), ndim=ARGS.ndim)
+        goal = Goal(np.random.uniform(-40, 40, 2), ndim=2)
         env.add_goal(goal)
-        # Create a sphere obstacle within in +/- 50 of goal's position.
+        # Create a sphere obstacle near segment between avg boids position and goal position.
+        avg_boids_position = np.mean(np.vstack([boid.position for boid in env.population]), axis=0)
+
         spheres = []
         for _ in range(ARGS.obstacles):
-            sphere = Sphere(np.random.uniform(-30, 30, ARGS.ndim) +
-                            goal.position, 8, ndim=ARGS.ndim)
+            sphere = random_obstacle(avg_boids_position, goal.position, 8)
             spheres.append(sphere)
             env.add_obstacle(sphere)
 
@@ -63,8 +82,6 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ndim', type=int, default=2,
-                        help='dimension of space.')
     parser.add_argument('--agents', type=int, default=100,
                         help='number of agents')
     parser.add_argument('--obstacles', type=int, default=0,
