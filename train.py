@@ -15,7 +15,7 @@ def model_fn(features, labels, mode, params):
 
     # For training and evaluatin, the last 'pred_steps' cannot be used as starting points,
     # because there would be no further ground truth to compare with.
-    known_time_series = time_series[:, :-params['pred_steps'], :, :]
+    known_time_series = time_series
 
     # Infer edge_type with encoder.
     edge_type_logits = gnn.encoder.encoder_fn[params['encoder']](
