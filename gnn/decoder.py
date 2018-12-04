@@ -94,8 +94,11 @@ def mlp_decoder_multisteps(features, params, pred_steps, training=False):
         # edge_type shape [num_sims, 1, num_edges, num_edge_types, 1]
 
     with tf.variable_scope('decoder_one_step') as scope:
-        starting_points = tf.expand_dims(time_series, 2)
-        # Shape [num_sims, time_steps, 1, num_agents, ndims]
+        starting_points = tf.expand_dims(time_series[:, ::pred_steps, :, :],
+                                         2,
+                                         name="starting_points")
+        num_starting_points = time_steps // pred_steps
+        # Shape [num_sims, num_starting_points, 1, num_agents, ndims]
 
     def decoder_one_step(pred_time_series):
         prev_step = pred_time_series[:, :, -1, :, :]
@@ -116,11 +119,15 @@ def mlp_decoder_multisteps(features, params, pred_steps, training=False):
         lambda i, pred_time_series: (i+1, decoder_one_step(pred_time_series)),
         [i, pred_time_series],
         shape_invariants=[tf.TensorShape(None),
-                          tf.TensorShape([num_sims, time_steps, None, num_agents, ndims])])
-    # pred_time_series Shape [num_sims, num_starting_points, pred_steps, num_agents, ndims]
+                          tf.TensorShape([num_sims, num_starting_points, None, num_agents, ndims])])
+    # pred_time_series Shape [num_sims, num_starting_points, pred_steps+1, num_agents, ndims]
 
     # Ignore the 0th pred step, which is the starting point.
-    return pred_time_series[:, :, 1:, :, :]
+    # Reshape to chain up the predicted time series.
+    pred_time_series = tf.reshape(pred_time_series[:, :, 1:, :, :],
+                                  shape=[-1, num_starting_points*pred_steps, num_agents, ndims])
+
+    return pred_time_series
 
 
 decoder_fn = {

@@ -31,7 +31,7 @@ def model_fn(features, labels, mode, params):
     # Predict state of next steps with decoder
     # using time_series and edge_type_logits
     state_next_step = gnn.decoder.decoder_fn[params['decoder']](
-        {'time_series': known_time_series,
+        {'time_series': time_series,
          'edge_type': edge_type_prob},
         params['decoder_params'],
         params['pred_steps'],
@@ -44,11 +44,11 @@ def model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    expected_time_series = gnn.utils.stack_time_series(time_series,
-                                                       params['pred_steps'])
+    expected_time_series = time_series[:, 1:, :, :]
+    time_steps = expected_time_series.shape.as_list()[1]
 
     trajectory_loss = tf.losses.mean_squared_error(expected_time_series,
-                                                   predictions['state_next_step'])
+                                                   predictions['state_next_step'][:, :time_steps, :, :])
 
     edge_type_loss = tf.losses.sparse_softmax_cross_entropy(labels=edge_type,
                                                             logits=edge_type_logits)
@@ -77,7 +77,7 @@ def model_fn(features, labels, mode, params):
 
     # Use the loss between adjacent steps in original time_series as baseline
     trajectory_loss_eval = tf.metrics.mean_squared_error(expected_time_series,
-                                                         predictions['state_next_step'])
+                                                         predictions['state_next_step'][:, :time_steps, :, :])
 
     time_series_loss_baseline = tf.metrics.mean_squared_error(time_series[:, 1:, :, :],
                                                               time_series[:, :-1, :, :])
@@ -141,7 +141,7 @@ def main():
     prediction = mlp_gnn_regressor.predict(input_fn=predict_input_fn)
     prediction = [(pred['state_next_step'], pred['edge_type_prob']) for pred in prediction]
     state_next_step, edge_type_prob = zip(*prediction)
-    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), state_next_step)
+    np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(ARGS.pred_steps)), state_next_step)
     np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), edge_type_prob)
 
 
