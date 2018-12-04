@@ -97,7 +97,7 @@ def mlp_decoder_multisteps(features, params, pred_steps, training=False):
         starting_points = tf.expand_dims(time_series[:, ::pred_steps, :, :],
                                          2,
                                          name="starting_points")
-        num_starting_points = time_steps // pred_steps
+        num_starting_points = (time_steps + 1) // pred_steps
         # Shape [num_sims, num_starting_points, 1, num_agents, ndims]
 
     def decoder_one_step(pred_time_series):
