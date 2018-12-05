@@ -6,7 +6,7 @@
             512,
             512
         ],
-        "dropout": 0.0,
+        "dropout": 0.3,
         "batch_norm": false
     },
     "decoder": "mlp",
@@ -20,7 +20,7 @@
         "batch_norm": false,
         "skip_zero": false
     },
-    "temperature": 0,
+    "temperature": 1,
     "learning_rate": 0.0005,
     "variance": 1
 }

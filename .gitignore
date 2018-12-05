@@ -109,4 +109,4 @@ ENV/
 .vscode
 
 # data
-*.npy
+data
