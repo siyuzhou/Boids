@@ -19,7 +19,7 @@ def model_fn(features, labels, mode, params):
 
     # Infer edge_type with encoder.
     edge_type_logits = gnn.encoder.encoder_fn[params['encoder']](
-        known_time_series,
+        time_series,
         params['edge_types'],
         params['encoder_params'],
         training=(mode == tf.estimator.ModeKeys.TRAIN))
