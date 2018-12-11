@@ -25,7 +25,8 @@ def decoder_model_fn(features, labels, mode, params):
     expected_time_series = gnn.utils.stack_time_series(features['time_series'],
                                                        params['pred_steps'])
 
-    loss = tf.losses.mean_squared_error(expected_time_series, pred)
+    loss = tf.losses.mean_squared_error(
+        expected_time_series, pred[:, :-params['pred_steps'], :, :])
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(
