@@ -14,6 +14,7 @@ def model_fn(features, labels, mode, params):
     pred_stack = gnn.dynamical.dynamical_multisteps(features,
                                                     params,
                                                     params['pred_steps'],
+                                                    params['refactor'],
                                                     training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {'next_steps': pred_stack}
@@ -55,6 +56,7 @@ def main():
         model_params = json.load(f)
 
     model_params['pred_steps'] = ARGS.pred_steps
+    model_params['refactor'] = ARGS.refactor
 
     print('Loading data...')
     train_data, test_data = load_data(
@@ -115,6 +117,8 @@ if __name__ == '__main__':
                         help='number of steps the estimator predicts for time series')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
+    parser.add_argument('--refactor', action='store_true', default=False,
+                        help='whether to apply graph convolution for a second time')
     parser.add_argument('--no-train', action='store_true', default=False,
                         help='skip training and use for evaluation only')
     ARGS = parser.parse_args()
