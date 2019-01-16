@@ -1,5 +1,5 @@
 {
-    "edge_types": 3,
+    "edge_types": 4,
     "encoder": "mlp",
     "encoder_params": {
         "hidden_units": [
