@@ -22,7 +22,8 @@ def decoder_model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    expected_time_series = features['time_series'][:, 1:, :, :]
+    expected_time_series = gnn.utils.stack_time_series(features['time_series'][:, 1:, :, :],
+                                                       params['pred_steps'])
     time_steps = expected_time_series.shape.as_list()[1]
 
     loss = tf.losses.mean_squared_error(expected_time_series, pred[:, :time_steps, :, :])
@@ -101,7 +102,7 @@ def main():
 
     prediction = mlp_decoder_regressor.predict(input_fn=predict_input_fn)
     prediction = np.array([pred['state_next_steps'] for pred in prediction])
-    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), prediction)
+    np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(ARGS.pred_steps)), prediction)
 
 
 if __name__ == '__main__':
