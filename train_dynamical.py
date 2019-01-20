@@ -81,13 +81,14 @@ def main():
                                       steps=ARGS.train_steps)
 
     # Evaluation
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=valid_data,
-        batch_size=ARGS.batch_size,
-        num_epochs=1,
-        shuffle=False
-    )
-    eval_results = cnn_multistep_regressor.evaluate(input_fn=eval_input_fn)
+    if not ARGS.no_eval:
+        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=valid_data,
+            batch_size=ARGS.batch_size,
+            num_epochs=1,
+            shuffle=False
+        )
+        eval_results = cnn_multistep_regressor.evaluate(input_fn=eval_input_fn)
 
     # Prediction
     predict_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -120,7 +121,9 @@ if __name__ == '__main__':
     parser.add_argument('--refactor', action='store_true', default=False,
                         help='whether to apply graph convolution for a second time')
     parser.add_argument('--no-train', action='store_true', default=False,
-                        help='skip training and use for evaluation only')
+                        help='skip training')
+    parser.add_argument('--no-eval', action='store_true', default=False,
+                        help='skip evaluation')
     ARGS = parser.parse_args()
 
     tf.logging.set_verbosity(tf.logging.INFO)

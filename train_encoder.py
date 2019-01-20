@@ -75,14 +75,15 @@ def main():
                                      steps=ARGS.train_steps)
 
     # Evaluation
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=valid_data,
-        y=valid_edge,
-        num_epochs=1,
-        shuffle=False
-    )
-    eval_results = mlp_encoder_classifier.evaluate(input_fn=eval_input_fn)
-    print("Validation set:", eval_results)
+    if not ARGS.no_eval:
+        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=valid_data,
+            y=valid_edge,
+            num_epochs=1,
+            shuffle=False
+        )
+        eval_results = mlp_encoder_classifier.evaluate(input_fn=eval_input_fn)
+        print("Validation set:", eval_results)
 
     # Predictoin
     pred_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -110,6 +111,8 @@ if __name__ == '__main__':
                         help='batch size')
     parser.add_argument('--no-train', action='store_true', default=False,
                         help='skip training and use for evaluation only')
+    parser.add_argument('--no-eval', action='store_true', default=False,
+                        help='skip evaluation')
     ARGS = parser.parse_args()
 
     tf.logging.set_verbosity(tf.logging.INFO)
