@@ -100,7 +100,7 @@ def main():
     model_params['supervised'] = ARGS.supervised
 
     print('Loading data...')
-    train_data, train_edge, test_data, test_edge = load_data(
+    train_data, train_edge, valid_data, valid_edge, test_data, _ = load_data(
         ARGS.data_dir, ARGS.data_transpose)
 
     mlp_gnn_regressor = tf.estimator.Estimator(
@@ -123,8 +123,8 @@ def main():
 
     # Evaluation
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=test_data,
-        y=test_edge,
+        x=valid_data,
+        y=valid_edge,
         num_epochs=1,
         batch_size=ARGS.batch_size,
         shuffle=False
@@ -134,7 +134,7 @@ def main():
 
     # Prediction
     predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=test_data[:10],
+        x=test_data,
         batch_size=ARGS.batch_size,
         shuffle=False)
 

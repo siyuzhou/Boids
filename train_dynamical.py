@@ -59,7 +59,7 @@ def main():
     model_params['refactor'] = ARGS.refactor
 
     print('Loading data...')
-    train_data, test_data = load_data(
+    train_data, valid_data, test_data = load_data(
         ARGS.data_dir, ARGS.data_transpose, edge=False)
 
     # model_params['pred_steps'] = ARGS.pred_steps
@@ -82,7 +82,7 @@ def main():
 
     # Evaluation
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=test_data,
+        x=valid_data,
         batch_size=ARGS.batch_size,
         num_epochs=1,
         shuffle=False
@@ -91,7 +91,7 @@ def main():
 
     # Prediction
     predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=test_data[:10],
+        x=test_data,
         batch_size=ARGS.batch_size,
         shuffle=False
     )

@@ -55,11 +55,12 @@ def main():
         model_params = json.load(f)
 
     print('Loading data...')
-    train_data, train_edge, test_data, test_edge = load_data(
+    train_data, train_edge, valid_data, valid_edge, test_data, test_edge = load_data(
         ARGS.data_dir, ARGS.data_transpose)
 
     # Convert int labels to one hot vectors.
     train_edge = gnn.utils.one_hot(train_edge, model_params['edge_types'], np.float32)
+    valid_edge = gnn.utils.one_hot(valid_edge, model_params['edge_types'], np.float32)
     test_edge = gnn.utils.one_hot(test_edge, model_params['edge_types'], np.float32)
 
     model_params['pred_steps'] = ARGS.pred_steps
@@ -83,8 +84,8 @@ def main():
 
     # Evaluation
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={'time_series': test_data,
-           'edge_type': test_edge},
+        x={'time_series': valid_data,
+           'edge_type': valid_edge},
         batch_size=ARGS.batch_size,
         num_epochs=1,
         shuffle=False
@@ -94,8 +95,8 @@ def main():
 
     # Prediction
     predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={'time_series': test_data[:10],
-           'edge_type': test_edge[:10]},
+        x={'time_series': test_data,
+           'edge_type': test_edge},
         batch_size=ARGS.batch_size,
         shuffle=False
     )
