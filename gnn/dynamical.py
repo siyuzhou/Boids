@@ -12,7 +12,7 @@ def node_to_edge(node_msg, edge_sources, edge_targets):
                                        perm=[0, 4, 1, 2, 3])
         msg_from_target = tf.transpose(tf.tensordot(node_msg, edge_targets, axes=[[1], [1]]),
                                        perm=[0, 4, 1, 2, 3])
-        # msg_from_source and msg_from_target in shape [num_sims, num_edges, out_units]
+        # msg_from_source and msg_from_target in shape [num_sims, num_edges, num_time_series, 1, out_units]
         edge_msg = tf.concat([msg_from_source, msg_from_target], axis=-1)
 
     return edge_msg
@@ -22,7 +22,7 @@ def edge_to_node(edge_msg, edge_targets):
     """Send edge messages to target nodes."""
     with tf.name_scope("edge_to_node"):
         node_msg = tf.transpose(tf.tensordot(edge_msg, edge_targets, axes=[[1], [0]]),
-                                perm=[0, 4, 1, 2, 3])  # Shape [num_sims, num_agents, out_units].
+                                perm=[0, 4, 1, 2, 3])  # Shape [num_sims, num_agents, num_time_series, 1, out_units].
 
     return node_msg
 
@@ -35,20 +35,23 @@ def cnn_dynamical(time_series_stack, params, refactor=False, training=False):
     if time_steps is None:
         time_steps = 2*n_conv_layers+1
 
-    # Input Layer
-    # Reshape to [num_sims*num_agents*num_time_series, time_steps, ndims], since conv1d only accept
-    # tensor with 3 dimensions.
-    state = tf.reshape(time_series_stack, shape=[-1, time_steps, ndims])
+    if params['cnn']['filters']:
+        # Input Layer
+        # Reshape to [num_sims*num_agents*num_time_series, time_steps, ndims], since conv1d only accept
+        # tensor with 3 dimensions.
+        state = tf.reshape(time_series_stack, shape=[-1, time_steps, ndims])
 
-    # Node state encoder with 1D convolution along timesteps and across ndims as channels.
-    encoded_state = state
-    for filters in params['cnn']['filters']:
-        encoded_state = tf.layers.conv1d(encoded_state, filters, 3, activation=tf.nn.relu)
-        # No pooling layer
+        # Node state encoder with 1D convolution along timesteps and across ndims as channels.
+        encoded_state = state
+        for filters in params['cnn']['filters']:
+            encoded_state = tf.layers.conv1d(encoded_state, filters, 3, activation=tf.nn.relu)
+            # No pooling layer
 
-    # encoded_state shape [num_sims, num_agents, num_time_series, 1, filters]
-    encoded_state = tf.reshape(encoded_state,
-                               shape=[-1, num_agents, num_time_series, 1, filters])
+        # encoded_state shape [num_sims, num_agents, num_time_series, 1, filters]
+        encoded_state = tf.reshape(encoded_state,
+                                   shape=[-1, num_agents, num_time_series, 1, filters])
+    else:
+        encoded_state = time_series_stack
 
     # Send encoded state to edges.
     # `edge_sources` and `edge_targets` in shape [num_edges, num_agents].
