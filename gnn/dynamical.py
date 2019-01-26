@@ -141,7 +141,8 @@ def dynamical_multisteps(features, params, pred_steps, refactor=False, training=
 
     def one_step(i, time_series_stack):
         with tf.name_scope(scope.original_name_scope):
-            next_state = cnn_dynamical(
+            prev_step = time_series_stack[:, :, :, -1:, :]
+            next_state = prev_step + cnn_dynamical(
                 time_series_stack[:, :, :, i:, :], params, refactor, training=training)
 
             return i+1, tf.concat([time_series_stack, next_state], axis=3)
