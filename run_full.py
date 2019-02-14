@@ -99,17 +99,17 @@ def main():
     model_params['pred_steps'] = ARGS.pred_steps
     model_params['supervised'] = ARGS.supervised
 
-    print('Loading data...')
-    train_data, train_edge, valid_data, valid_edge, test_data, _ = load_data(
-        ARGS.data_dir, ARGS.data_transpose)
-
     mlp_gnn_regressor = tf.estimator.Estimator(
         model_fn=model_fn,
         params=model_params,
         model_dir=ARGS.log_dir
     )
     # Training
-    if not ARGS.no_train:
+    if ARGS.train:
+        train_data, train_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
+                                           prefix='train')
+        train_edge = gnn.utils.one_hot(train_edge, model_params['edge_types'], np.float32)
+
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=train_data,
             y=train_edge,
@@ -122,7 +122,11 @@ def main():
                                 steps=ARGS.train_steps)
 
     # Evaluation
-    if not ARGS.no_eval:
+    if ARGS.eval:
+        valid_data, valid_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
+                                           prefix='valid')
+        valid_edge = gnn.utils.one_hot(valid_edge, model_params['edge_types'], np.float32)
+
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=valid_data,
             y=valid_edge,
@@ -131,19 +135,26 @@ def main():
             shuffle=False
         )
         eval_results = mlp_gnn_regressor.evaluate(input_fn=eval_input_fn)
-    # print("Validation set:", eval_results)
+
+        if not ARGS.verbose:
+            print('Evaluation results: {}'.format(eval_results))
 
     # Prediction
-    predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=test_data,
-        batch_size=ARGS.batch_size,
-        shuffle=False)
+    if ARGS.test:
+        test_data, test_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
+                                         prefix='test')
+        test_edge = gnn.utils.one_hot(test_edge, model_params['edge_types'], np.float32)
 
-    prediction = mlp_gnn_regressor.predict(input_fn=predict_input_fn)
-    prediction = [(pred['state_next_step'], pred['edge_type_prob']) for pred in prediction]
-    state_next_step, edge_type_prob = zip(*prediction)
-    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), state_next_step)
-    np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), edge_type_prob)
+        predict_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=test_data,
+            batch_size=ARGS.batch_size,
+            shuffle=False)
+
+        prediction = mlp_gnn_regressor.predict(input_fn=predict_input_fn)
+        prediction = [(pred['state_next_step'], pred['edge_type_prob']) for pred in prediction]
+        state_next_step, edge_type_prob = zip(*prediction)
+        np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), state_next_step)
+        np.save(os.path.join(ARGS.log_dir, 'infered_edge_type.npy'), edge_type_prob)
 
 
 if __name__ == '__main__':
@@ -164,12 +175,17 @@ if __name__ == '__main__':
                         help='batch size')
     parser.add_argument('--supervised', action='store_true', default=False,
                         help='use edge type labels to constrain encoder')
-    parser.add_argument('--no-train', action='store_true', default=False,
-                        help='skip training and use for evaluation only')
-    parser.add_argument('--no-eval', action='store_true', default=False,
-                        help='skip evaluation')
+    parser.add_argument('--verbose', action='store_true', default=False,
+                        help='turn on logging info')
+    parser.add_argument('--train', action='store_true', default=False,
+                        help='turn on training')
+    parser.add_argument('--eval', action='store_true', default=False,
+                        help='turn on evaluation')
+    parser.add_argument('--test', action='store_true', default=False,
+                        help='turn on test')
     ARGS = parser.parse_args()
 
-    tf.logging.set_verbosity(tf.logging.INFO)
+    if ARGS.verbose:
+        tf.logging.set_verbosity(tf.logging.INFO)
 
     main()

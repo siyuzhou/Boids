@@ -53,16 +53,16 @@ def main():
     with open(ARGS.config) as f:
         model_params = json.load(f)
 
-    print('Loading data...')
-    train_data, train_edge, valid_data, valid_edge, test_data, _ = load_data(
-        ARGS.data_dir, ARGS.data_transpose)
-
     mlp_encoder_classifier = tf.estimator.Estimator(
         model_fn=encoder_model_fn,
         params=model_params,
         model_dir=ARGS.log_dir)
 
-    if not ARGS.no_train:
+    if ARGS.train:
+        train_data, train_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
+                                           prefix='train')
+        train_edge = gnn.utils.one_hot(train_edge, model_params['edge_types'], np.float32)
+
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=train_data,
             y=train_edge,
@@ -75,7 +75,11 @@ def main():
                                      steps=ARGS.train_steps)
 
     # Evaluation
-    if not ARGS.no_eval:
+    if ARGS.eval:
+        valid_data, valid_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
+                                           prefix='valid')
+        valid_edge = gnn.utils.one_hot(valid_edge, model_params['edge_types'], np.float32)
+
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=valid_data,
             y=valid_edge,
@@ -83,16 +87,23 @@ def main():
             shuffle=False
         )
         eval_results = mlp_encoder_classifier.evaluate(input_fn=eval_input_fn)
-        print("Validation set:", eval_results)
+
+        if not ARGS.verbose:
+            print('Evaluation results: {}'.format(eval_results))
 
     # Predictoin
-    pred_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=test_data,
-        shuffle=False
-    )
-    prediction = mlp_encoder_classifier.predict(input_fn=pred_input_fn)
-    predicted_edge_type = [pred['classes'] for pred in prediction]
-    np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), predicted_edge_type)
+    if ARGS.test:
+        test_data, test_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
+                                         prefix='test')
+        test_edge = gnn.utils.one_hot(test_edge, model_params['edge_types'], np.float32)
+
+        pred_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=test_data,
+            shuffle=False
+        )
+        prediction = mlp_encoder_classifier.predict(input_fn=pred_input_fn)
+        predicted_edge_type = [pred['classes'] for pred in prediction]
+        np.save(os.path.join(ARGS.log_dir, 'prediction.npy'), predicted_edge_type)
 
 
 if __name__ == '__main__':
@@ -109,12 +120,17 @@ if __name__ == '__main__':
                         help='number of training steps')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
-    parser.add_argument('--no-train', action='store_true', default=False,
-                        help='skip training and use for evaluation only')
-    parser.add_argument('--no-eval', action='store_true', default=False,
-                        help='skip evaluation')
+    parser.add_argument('--verbose', action='store_true', default=False,
+                        help='turn on logging info')
+    parser.add_argument('--train', action='store_true', default=False,
+                        help='turn on training')
+    parser.add_argument('--eval', action='store_true', default=False,
+                        help='turn on evaluation')
+    parser.add_argument('--test', action='store_true', default=False,
+                        help='turn on test')
     ARGS = parser.parse_args()
 
-    tf.logging.set_verbosity(tf.logging.INFO)
+    if ARGS.verbose:
+        tf.logging.set_verbosity(tf.logging.INFO)
 
     main()

@@ -58,18 +58,15 @@ def main():
     model_params['pred_steps'] = ARGS.pred_steps
     model_params['refactor'] = ARGS.refactor
 
-    print('Loading data...')
-    train_data, valid_data, test_data = load_data(
-        ARGS.data_dir, ARGS.data_transpose, edge=False)
-
-    # model_params['pred_steps'] = ARGS.pred_steps
-
     cnn_multistep_regressor = tf.estimator.Estimator(
         model_fn=model_fn,
         params=model_params,
         model_dir=ARGS.log_dir)
 
-    if not ARGS.no_train:
+    if ARGS.train:
+        train_data = load_data(ARGS.data_dir, ARGS.data_transpose, edge=False,
+                               prefix='train')
+
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=train_data,
             batch_size=ARGS.batch_size,
@@ -81,7 +78,10 @@ def main():
                                       steps=ARGS.train_steps)
 
     # Evaluation
-    if not ARGS.no_eval:
+    if ARGS.eval:
+        valid_data = load_data(ARGS.data_dir, ARGS.data_transpose, edge=False,
+                               prefix='valid')
+
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=valid_data,
             batch_size=ARGS.batch_size,
@@ -90,16 +90,22 @@ def main():
         )
         eval_results = cnn_multistep_regressor.evaluate(input_fn=eval_input_fn)
 
-    # Prediction
-    predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x=test_data,
-        batch_size=ARGS.batch_size,
-        shuffle=False
-    )
+        if not ARGS.verbose:
+            print('Evaluation results: {}'.format(eval_results))
 
-    prediction = cnn_multistep_regressor.predict(input_fn=predict_input_fn)
-    prediction = np.array([pred['next_steps'] for pred in prediction])
-    np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(ARGS.pred_steps)), prediction)
+    # Prediction
+    if ARGS.test:
+        test_data = load_data(ARGS.data_dir, ARGS.data_transpose, edge=False,
+                              prefix='test')
+
+        predict_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=test_data,
+            batch_size=ARGS.batch_size,
+            shuffle=False
+        )
+        prediction = cnn_multistep_regressor.predict(input_fn=predict_input_fn)
+        prediction = np.array([pred['next_steps'] for pred in prediction])
+        np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(ARGS.pred_steps)), prediction)
 
 
 if __name__ == '__main__':
@@ -120,12 +126,17 @@ if __name__ == '__main__':
                         help='batch size')
     parser.add_argument('--refactor', action='store_true', default=False,
                         help='whether to apply graph convolution for a second time')
-    parser.add_argument('--no-train', action='store_true', default=False,
-                        help='skip training')
-    parser.add_argument('--no-eval', action='store_true', default=False,
-                        help='skip evaluation')
+    parser.add_argument('--verbose', action='store_true', default=False,
+                        help='turn on logging info')
+    parser.add_argument('--train', action='store_true', default=False,
+                        help='turn on training')
+    parser.add_argument('--eval', action='store_true', default=False,
+                        help='turn on evaluation')
+    parser.add_argument('--test', action='store_true', default=False,
+                        help='turn on test')
     ARGS = parser.parse_args()
 
-    tf.logging.set_verbosity(tf.logging.INFO)
+    if ARGS.verbose:
+        tf.logging.set_verbosity(tf.logging.INFO)
 
     main()
