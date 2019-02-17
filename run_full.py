@@ -50,9 +50,6 @@ def model_fn(features, labels, mode, params):
     trajectory_loss = tf.losses.mean_squared_error(expected_time_series,
                                                    predictions['state_next_step'])
 
-    edge_type_loss = tf.losses.sparse_softmax_cross_entropy(labels=edge_type,
-                                                            logits=edge_type_logits)
-
     edge_kl_loss = tf.losses.softmax_cross_entropy(
         onehot_labels=predictions['edge_type_prob'],
         logits=edge_type_logits
@@ -60,6 +57,8 @@ def model_fn(features, labels, mode, params):
 
     loss = trajectory_loss  # / params['variance'] - edge_kl_loss
     if params['supervised']:
+        edge_type_loss = tf.losses.sparse_softmax_cross_entropy(labels=edge_type,
+                                                                logits=edge_type_logits)
         loss += edge_type_loss
 
     if mode == tf.estimator.ModeKeys.TRAIN:
@@ -108,7 +107,6 @@ def main():
     if ARGS.train:
         train_data, train_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
                                            prefix='train')
-        train_edge = gnn.utils.one_hot(train_edge, model_params['edge_types'], np.float32)
 
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=train_data,
@@ -125,7 +123,6 @@ def main():
     if ARGS.eval:
         valid_data, valid_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
                                            prefix='valid')
-        valid_edge = gnn.utils.one_hot(valid_edge, model_params['edge_types'], np.float32)
 
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=valid_data,
@@ -143,7 +140,6 @@ def main():
     if ARGS.test:
         test_data, test_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
                                          prefix='test')
-        test_edge = gnn.utils.one_hot(test_edge, model_params['edge_types'], np.float32)
 
         predict_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=test_data,

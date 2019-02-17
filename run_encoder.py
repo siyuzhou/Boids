@@ -61,7 +61,6 @@ def main():
     if ARGS.train:
         train_data, train_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
                                            prefix='train')
-        train_edge = gnn.utils.one_hot(train_edge, model_params['edge_types'], np.float32)
 
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=train_data,
@@ -78,7 +77,6 @@ def main():
     if ARGS.eval:
         valid_data, valid_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
                                            prefix='valid')
-        valid_edge = gnn.utils.one_hot(valid_edge, model_params['edge_types'], np.float32)
 
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=valid_data,
@@ -95,7 +93,6 @@ def main():
     if ARGS.test:
         test_data, test_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
                                          prefix='test')
-        test_edge = gnn.utils.one_hot(test_edge, model_params['edge_types'], np.float32)
 
         pred_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=test_data,
