@@ -66,6 +66,8 @@ def main():
     if ARGS.train:
         train_data = load_data(ARGS.data_dir, ARGS.data_transpose, edge=False,
                                prefix='train')
+        if ARGS.data_set_size:
+            train_data = train_data[:ARGS.data_set_size]
 
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=train_data,
@@ -81,6 +83,8 @@ def main():
     if ARGS.eval:
         valid_data = load_data(ARGS.data_dir, ARGS.data_transpose, edge=False,
                                prefix='valid')
+        if ARGS.data_set_size:
+            train_data = train_data[:ARGS.data_set_size]
 
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=valid_data,
@@ -105,7 +109,8 @@ def main():
         )
         prediction = cnn_multistep_regressor.predict(input_fn=predict_input_fn)
         prediction = np.array([pred['next_steps'] for pred in prediction])
-        np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(ARGS.pred_steps)), prediction)
+        np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(
+            ARGS.pred_steps)), prediction)
 
 
 if __name__ == '__main__':
@@ -114,6 +119,8 @@ if __name__ == '__main__':
                         help='data directory')
     parser.add_argument('--data-transpose', type=int, nargs=4, default=None,
                         help='axes for data transposition')
+    parser.add_argument('--data-set-size', type=int, default=None,
+                        help='maximum size of data set')
     parser.add_argument('--config', type=str,
                         help='model config file')
     parser.add_argument('--log-dir', type=str,
