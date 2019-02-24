@@ -14,14 +14,14 @@ def lstm(time_series, params, pred_steps, training=False):
     # timeseries shape [num_sims, time_steps, num_agents, ndims]
     num_sims, time_steps, num_agents, ndims = time_series.shape.as_list()
 
-    time_series = tf.reshape(time_series, [num_sims * time_steps, num_agents * ndims])
+    time_series = tf.reshape(time_series, [-1, num_agents * ndims])
     time_series_stack = tf.TensorArray(tf.float32, pred_steps)
     # Shape [pred_steps, num_sims * time_steps, num_agents * ndims]
     # print('\n\n time_series_stack shape {} \n'.format(time_series_stack.shape))
 
     with tf.variable_scope('prediction_one_step') as scope:
         lstm_cell = tf.nn.rnn_cell.LSTMCell(params['units'])
-        init_state = lstm_cell.zero_state(num_sims * time_steps, tf.float32)
+        init_state = lstm_cell.zero_state(tf.shape(time_series)[0], tf.float32)
 
     def one_step(i, prev_state, rnn_state, time_series_stack):
         with tf.name_scope(scope.original_name_scope):
@@ -42,7 +42,7 @@ def lstm(time_series, params, pred_steps, training=False):
 
     time_series_stack = tf.transpose(time_series_stack.stack(), [1, 0, 2])
     time_series_stack = tf.reshape(time_series_stack,
-                                   [num_sims, time_steps, pred_steps, num_agents, ndims])
+                                   [-1, time_steps, pred_steps, num_agents, ndims])
 
     return time_series_stack
 
