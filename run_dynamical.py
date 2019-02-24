@@ -66,8 +66,8 @@ def main():
     if ARGS.train:
         train_data = load_data(ARGS.data_dir, ARGS.data_transpose, edge=False,
                                prefix='train')
-        if ARGS.data_set_size:
-            train_data = train_data[:ARGS.data_set_size]
+        if ARGS.dataset_size:
+            train_data = train_data[:ARGS.dataset_size]
 
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=train_data,
@@ -83,8 +83,8 @@ def main():
     if ARGS.eval:
         valid_data = load_data(ARGS.data_dir, ARGS.data_transpose, edge=False,
                                prefix='valid')
-        if ARGS.data_set_size:
-            train_data = train_data[:ARGS.data_set_size]
+        if ARGS.dataset_size:
+            train_data = train_data[:ARGS.dataset_size]
 
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=valid_data,
@@ -119,7 +119,7 @@ if __name__ == '__main__':
                         help='data directory')
     parser.add_argument('--data-transpose', type=int, nargs=4, default=None,
                         help='axes for data transposition')
-    parser.add_argument('--data-set-size', type=int, default=None,
+    parser.add_argument('--dataset-size', type=int, default=None,
                         help='maximum size of data set')
     parser.add_argument('--config', type=str,
                         help='model config file')
