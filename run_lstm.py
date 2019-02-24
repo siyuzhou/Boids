@@ -10,52 +10,48 @@ from gnn.modules import mlp_layers
 from gnn.data import load_data
 
 
-def mlp_multisteps(time_series, params, pred_steps, training=False):
+def lstm(time_series, params, pred_steps, training=False):
     # timeseries shape [num_sims, time_steps, num_agents, ndims]
     num_sims, time_steps, num_agents, ndims = time_series.shape.as_list()
 
-    time_series = tf.reshape(time_series, [num_sims, time_steps, num_agents * ndims])
-    time_series_stack = tf.expand_dims(time_series, axis=2)
-    # Shape [num_sims, time_steps, 1, num_agents * ndims]
-    print('\n\n time_series_stack shape {} \n'.format(time_series_stack.shape))
+    time_series = tf.reshape(time_series, [num_sims * time_steps, num_agents * ndims])
+    time_series_stack = tf.TensorArray(tf.float32, pred_steps)
+    # Shape [pred_steps, num_sims * time_steps, num_agents * ndims]
+    # print('\n\n time_series_stack shape {} \n'.format(time_series_stack.shape))
 
     with tf.variable_scope('prediction_one_step') as scope:
-        pass
+        lstm_cell = tf.nn.rnn_cell.LSTMCell(params['units'])
+        init_state = lstm_cell.zero_state(num_sims * time_steps, tf.float32)
 
-    def one_step(i, time_series_stack):
+    def one_step(i, prev_state, rnn_state, time_series_stack):
         with tf.name_scope(scope.original_name_scope):
-            prev_state = time_series_stack[:, :, -1:, :]
-            # next_state = mlp_layers(prev_state,
-            #                         params['hidden_units'],
-            #                         params['dropout'],
-            #                         params['batch_norm'],
-            #                         name='MLP',
-            #                         training=training)
+            output, rnn_state = lstm_cell(prev_state, rnn_state)
+            pred = tf.layers.dense(output, num_agents * ndims, name='linear')
+            next_state = prev_state + pred
 
-            next_state = prev_state + tf.layers.dense(prev_state, num_agents*ndims, name='linear')
+            time_series_stack = time_series_stack.write(i, next_state)
 
-            return i+1, tf.concat([time_series_stack, next_state], axis=2)
+            return i+1, next_state, rnn_state, time_series_stack
 
     i = 0
-    _, time_series_stack = tf.while_loop(
-        lambda i, _: i < pred_steps,
+    _, _, _, time_series_stack = tf.while_loop(
+        lambda i, p, t, s: i < pred_steps,
         one_step,
-        [i, time_series_stack],
-        shape_invariants=[tf.TensorShape(None),
-                          tf.TensorShape([num_sims, time_steps, None, num_agents*ndims])]
+        [i, time_series, init_state, time_series_stack]
     )
 
+    time_series_stack = tf.transpose(time_series_stack.stack(), [1, 0, 2])
     time_series_stack = tf.reshape(time_series_stack,
-                                   [num_sims, time_steps, pred_steps+1, num_agents, ndims])
+                                   [num_sims, time_steps, pred_steps, num_agents, ndims])
 
-    return time_series_stack[:, :, 1:, :, :]
+    return time_series_stack
 
 
 def model_fn(features, labels, mode, params):
-    pred_stack = mlp_multisteps(features,
-                                params,
-                                params['pred_steps'],
-                                training=(mode == tf.estimator.ModeKeys.TRAIN))
+    pred_stack = lstm(features,
+                      params,
+                      params['pred_steps'],
+                      training=(mode == tf.estimator.ModeKeys.TRAIN))
 
     predictions = {'next_steps': pred_stack}
 
@@ -96,7 +92,7 @@ def main():
 
     model_params['pred_steps'] = ARGS.pred_steps
 
-    mlp_multistep_regressor = tf.estimator.Estimator(
+    lstm_multistep_regressor = tf.estimator.Estimator(
         model_fn=model_fn,
         params=model_params,
         model_dir=ARGS.log_dir)
@@ -112,8 +108,8 @@ def main():
             shuffle=True
         )
 
-        mlp_multistep_regressor.train(input_fn=train_input_fn,
-                                      steps=ARGS.train_steps)
+        lstm_multistep_regressor.train(input_fn=train_input_fn,
+                                       steps=ARGS.train_steps)
 
     # Evaluation
     if ARGS.eval:
@@ -126,7 +122,7 @@ def main():
             num_epochs=1,
             shuffle=False
         )
-        eval_results = mlp_multistep_regressor.evaluate(input_fn=eval_input_fn)
+        eval_results = lstm_multistep_regressor.evaluate(input_fn=eval_input_fn)
 
         if not ARGS.verbose:
             print('Evaluation results: {}'.format(eval_results))
@@ -142,9 +138,10 @@ def main():
             shuffle=False
         )
 
-        prediction = mlp_multistep_regressor.predict(input_fn=predict_input_fn)
+        prediction = lstm_multistep_regressor.predict(input_fn=predict_input_fn)
         prediction = np.array([pred['next_steps'] for pred in prediction])
-        np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(ARGS.pred_steps)), prediction)
+        np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(
+            ARGS.pred_steps)), prediction)
 
 
 if __name__ == '__main__':
