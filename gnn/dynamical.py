@@ -106,9 +106,10 @@ def cnn_dynamical(time_series_stack, params, training=False):
 
 def dynamical_multisteps(features, params, pred_steps, training=False):
     # features shape [num_sims, time_steps, num_agents, ndims]
-    num_sims, time_steps, num_agents, ndims = features.shape.as_list()
+    time_series = features['time_series']
+    num_sims, time_steps, num_agents, ndims = time_series.shape.as_list()
     # Transpose to [num_sims, num_agents, time_steps, ndims]
-    time_series = tf.transpose(features, [0, 2, 1, 3])
+    time_series = tf.transpose(time_series, [0, 2, 1, 3])
 
     n_conv_layers = len(params['cnn']['filters'])
 

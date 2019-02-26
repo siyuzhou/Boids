@@ -22,7 +22,7 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
     n_conv_layers = len(params['cnn']['filters'])
-    expected_time_series = gnn.utils.stack_time_series(features[:, 2*n_conv_layers+1:, :, :],
+    expected_time_series = gnn.utils.stack_time_series(features['time_series'][:, 2*n_conv_layers+1:, :, :],
                                                        params['pred_steps'])
 
     loss = tf.losses.mean_squared_error(expected_time_series,
@@ -68,7 +68,7 @@ def main():
             train_data = train_data[:ARGS.dataset_size]
 
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=train_data,
+            x={'time_series': train_data},
             batch_size=ARGS.batch_size,
             num_epochs=None,
             shuffle=True
@@ -85,7 +85,7 @@ def main():
             train_data = train_data[:ARGS.dataset_size]
 
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=valid_data,
+            x={'time_series': valid_data},
             batch_size=ARGS.batch_size,
             num_epochs=1,
             shuffle=False
@@ -101,7 +101,7 @@ def main():
                               prefix='test')
 
         predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=test_data,
+            x={'time_series': test_data},
             batch_size=ARGS.batch_size,
             shuffle=False
         )
