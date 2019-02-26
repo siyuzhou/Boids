@@ -43,8 +43,8 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Use the loss between adjacent steps in original time_series as baseline
-    time_series_loss_baseline = tf.metrics.mean_squared_error(features[:, 1:, :, :],
-                                                              features[:, :-1, :, :])
+    time_series_loss_baseline = tf.metrics.mean_squared_error(features['time_series'][:, 1:, :, :],
+                                                              features['time_series'][:, :-1, :, :])
 
     eval_metric_ops = {'time_series_loss_baseline': time_series_loss_baseline}
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
