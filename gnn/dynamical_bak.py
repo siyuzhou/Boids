@@ -78,14 +78,14 @@ def cnn_dynamical(time_series_stack, params, refactor=False, training=False):
     # Compute edge influence to node. Shape [num_sims, num_agents, num_time_series, 1, hidden_units]
     node_msg = edge_to_node(edge_msg, edge_targets)
 
+    # Encode node messages with MLP
+    node_msg = mlp_layers(node_msg,
+                          params['mlp']['hidden_units'],
+                          params['mlp']['dropout'],
+                          params['mlp']['batch_norm'],
+                          training=training,
+                          name='node_encoding_MLP_1')
     if refactor:
-        # Encode node messages with MLP
-        node_msg = mlp_layers(node_msg,
-                              params['mlp']['hidden_units'],
-                              params['mlp']['dropout'],
-                              params['mlp']['batch_norm'],
-                              training=training,
-                              name='node_encoding_MLP_1')
         # Propagate node messagess to edges again.
         edge_msg = node_to_edge(node_msg, edge_sources, edge_targets)
 
