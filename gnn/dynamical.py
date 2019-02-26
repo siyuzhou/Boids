@@ -143,7 +143,7 @@ def dynamical_multisteps(features, params, pred_steps, training=False):
     with tf.variable_scope('prediction_one_step') as scope:
         pass
 
-    if params['edge_types'] > 1:
+    if params.get('edge_types', 0) > 1:
         with tf.name_scope('edge_type'):
             edge_type = features['edge_type']
             # Shape [num_sims, num_edges, num_edge_types]
