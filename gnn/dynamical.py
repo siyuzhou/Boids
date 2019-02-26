@@ -95,7 +95,7 @@ def cnn_dynamical(time_series_stack, edge_type, params, training=False):
                               params['mlp']['dropout'],
                               params['mlp']['batch_norm'],
                               training=training,
-                              name='edge_encoding_MLP')
+                              name='edge_encoding_MLP_1')
 
     # Compute edge influence to node. Shape [num_sims, num_agents, num_time_series, 1, hidden_units]
     edge_msg_aggr = edge_to_node(edge_msg, edge_targets)
@@ -130,6 +130,7 @@ def dynamical_multisteps(features, params, pred_steps, training=False):
     # features shape [num_sims, time_steps, num_agents, ndims]
     time_series = features['time_series']
     num_sims, time_steps, num_agents, ndims = time_series.shape.as_list()
+
     # Transpose to [num_sims, num_agents, time_steps, ndims]
     time_series = tf.transpose(time_series, [0, 2, 1, 3])
 
