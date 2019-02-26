@@ -27,7 +27,7 @@ def edge_to_node(edge_msg, edge_targets):
     return node_msg
 
 
-def cnn_dynamical(time_series_stack, params, training=False):
+def cnn_dynamical(time_series_stack, edge_type, params, training=False):
     """Next step prediction using CNN and GNN."""
     # Tensor `time_series` has shape [num_sims, num_agents, num_time_series, time_steps, ndims].
     num_sims, num_agents, num_time_series, time_steps, ndims = time_series_stack.shape.as_list()
@@ -64,16 +64,38 @@ def cnn_dynamical(time_series_stack, params, training=False):
     # Form edges. Shape [num_sims, num_edges, num_time_series, 1, filters]
     edge_msg = node_to_edge(encoded_state, edge_sources, edge_targets)
 
-    # Store skip.
-    edge_msg_skip = edge_msg
-
     # Encode edge messages with MLP. Shape [num_sims, num_edges, num_time_series, 1, hidden_units]
-    edge_msg = mlp_layers(edge_msg,
-                          params['mlp']['hidden_units'],
-                          params['mlp']['dropout'],
-                          params['mlp']['batch_norm'],
-                          training=training,
-                          name='edge_encoding_MLP_1')
+    if edge_type is not None:
+        start = 1 if params.get('skip_zero', False) else 0
+        encoded_msg_by_type = []
+
+        for i in range(start, params['edge_types']):
+            # mlp_encoder for one edge type.
+            encoded_msg = mlp_layers(edge_msg,
+                                     params['mlp']['hidden_units'],
+                                     params['mlp']['dropout'],
+                                     params['mlp']['batch_norm'],
+                                     training=training,
+                                     name='edge_MLP_encoder_{}'.format(i))
+
+            encoded_msg_by_type.append(encoded_msg)
+
+        encoded_msg_by_type = tf.concat(encoded_msg_by_type, axis=3)
+        # Shape [num_sims, num_edges, num_time_series, edge_types, hidden_units]
+        with tf.name_scope('edge_encoding_avg'):
+            # Sum of the edge encoding from all possible types.
+            edge_msg = tf.reduce_sum(tf.multiply(encoded_msg_by_type,
+                                                 edge_type[:, :, :, start:, :]),
+                                     axis=3,
+                                     keepdims=True)
+            # Shape [num_sims, num_edges, num_time_series, 1, hidden_units]
+    else:
+        edge_msg = mlp_layers(edge_msg,
+                              params['mlp']['hidden_units'],
+                              params['mlp']['dropout'],
+                              params['mlp']['batch_norm'],
+                              training=training,
+                              name='edge_encoding_MLP')
 
     # Compute edge influence to node. Shape [num_sims, num_agents, num_time_series, 1, hidden_units]
     edge_msg_aggr = edge_to_node(edge_msg, edge_targets)
@@ -121,11 +143,22 @@ def dynamical_multisteps(features, params, pred_steps, training=False):
     with tf.variable_scope('prediction_one_step') as scope:
         pass
 
+    if params['edge_types'] > 1:
+        with tf.name_scope('edge_type'):
+            edge_type = features['edge_type']
+            # Shape [num_sims, num_edges, num_edge_types]
+            # Expand edge_type so that it has same number of dimensions as time_series.
+            edge_type = tf.expand_dims(edge_type, 2)
+            edge_type = tf.expand_dims(edge_type, 4)
+            # edge_type shape [num_sims, num_edges, 1, num_edge_types, 1]
+    else:
+        edge_type = None
+
     def one_step(i, time_series_stack):
         with tf.name_scope(scope.original_name_scope):
             prev_step = time_series_stack[:, :, :, -1:, :]
             next_state = prev_step + cnn_dynamical(
-                time_series_stack[:, :, :, i:, :], params, training=training)
+                time_series_stack[:, :, :, i:, :], edge_type, params, training=training)
 
             return i+1, tf.concat([time_series_stack, next_state], axis=3)
 
