@@ -21,47 +21,19 @@ def model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    # n_conv_layers = len(params['cnn']['filters'])
-    # expected_time_series = gnn.utils.stack_time_series(features['time_series'][:, 2*n_conv_layers+1:, :, :],
-    #                                                    params['pred_steps'])
-
-    # loss = tf.losses.mean_squared_error(expected_time_series,
-    #                                     pred_stack[:, :-params['pred_steps'], :, :, :])
-
-    # if mode == tf.estimator.ModeKeys.TRAIN:
-    #     learning_rate = tf.train.exponential_decay(
-    #         learning_rate=params['learning_rate'],
-    #         global_step=tf.train.get_global_step(),
-    #         decay_steps=100,
-    #         decay_rate=0.95,
-    #         staircase=True,
-    #         name='learning_rate'
-    #     )
-    #     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    #     train_op = optimizer.minimize(loss=loss,
-    #                                   global_step=tf.train.get_global_step())
-    #     return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-
-    # # Use the loss between adjacent steps in original time_series as baseline
-    # time_series_loss_baseline = tf.metrics.mean_squared_error(features['time_series'][:, 1:, :, :],
-    #                                                           features['time_series'][:, :-1, :, :])
-
-    # eval_metric_ops = {'time_series_loss_baseline': time_series_loss_baseline}
-    # return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
-
 
 def main():
     with open(ARGS.config) as f:
         model_params = json.load(f)
 
-    model_params['pred_steps'] = ARGS.pred_steps
+    model_params['pred_steps'] = 1
 
     cnn_multistep_regressor = tf.estimator.Estimator(
         model_fn=model_fn,
         params=model_params,
         model_dir=ARGS.log_dir)
 
-    # Prediction
+    # Load test data
     if model_params.get('edge_types', 0) > 1:
         test_data, test_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
                                          prefix='test')
@@ -73,29 +45,38 @@ def main():
                               prefix='test')
         features = {'time_series': test_data}
 
-    pred_record = []
     # Reserve segment for only 1 step prediction
     seg_len = 2 * len(model_params['cnn']['filters']) + 1
-    test_data = test_data[:, :seg_len, :, :]
+    test_data_start = test_data[:, :seg_len, :, :]
 
-    for i in range(ARGS.pred_steps):
-        features['test_data'] = test_data
-        predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=features,
-            batch_size=ARGS.batch_size,
-            shuffle=False
-        )
-        prediction = cnn_multistep_regressor.predict(input_fn=predict_input_fn)
-        prediction = np.array([pred['next_steps'] for pred in prediction])
-        # Shape [num_sims, 1, 1, nagents, ndims]
-        prediction = np.squeeze(prediction, axis=1)  # Shape [num_sims, 1, nagents, ndims]
+    all_pred_record = []
+    for i in range(ARGS.repeat):
+        pred_record = []
+        # Initialize time series
+        features['time_series'] = test_data_start
+        for _ in range(ARGS.pred_steps):
+            # Predict the next step.
+            predict_input_fn = tf.estimator.inputs.numpy_input_fn(
+                x=features,
+                batch_size=ARGS.batch_size,
+                shuffle=False
+            )
+            prediction = cnn_multistep_regressor.predict(input_fn=predict_input_fn)
+            prediction = np.array([pred['next_steps'] for pred in prediction])
+            # Shape [num_sims, 1, 1, nagents, ndims]
+            prediction = np.squeeze(prediction, axis=1)  # Shape [num_sims, 1, nagents, ndims]
 
-        pred_record.append(prediction)
-        test_data = np.concatenate([test_data[:, 1:, :, :], prediction], axis=1)
+            pred_record.append(prediction)
+            features['time_series'] = np.concatenate(
+                [features['time_series'][:, 1:, :, :], prediction], axis=1)
 
-    pred_record = np.concatenate(pred_record, axis=1)
+        pred_record = np.concatenate(pred_record, axis=1)
+        all_pred_record.append(pred_record)
+        print(f'Prediction repeatition {i} done.')
+
+    all_pred_record = np.stack(all_pred_record, axis=0)
     np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(
-        ARGS.pred_steps)), pred_record)
+        ARGS.pred_steps)), all_pred_record)
 
 
 if __name__ == '__main__':
@@ -114,6 +95,8 @@ if __name__ == '__main__':
                         help='batch size')
     parser.add_argument('--verbose', action='store_true', default=False,
                         help='turn on logging info')
+    parser.add_argument('--repeat', type=int,
+                        help='number of repeatition for prediction')
 
     ARGS = parser.parse_args()
 
