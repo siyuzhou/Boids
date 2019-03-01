@@ -66,6 +66,9 @@ def main():
             # Shape [num_sims, 1, 1, nagents, ndims]
             prediction = np.squeeze(prediction, axis=1)  # Shape [num_sims, 1, nagents, ndims]
 
+            # Add actuation noise.
+            prediction += np.random.normal(scale=1, size=prediction.shape)
+
             pred_record.append(prediction)
             features['time_series'] = np.concatenate(
                 [features['time_series'][:, 1:, :, :], prediction], axis=1)
