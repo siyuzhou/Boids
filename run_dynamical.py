@@ -77,12 +77,14 @@ def input_fn(features, seg_len, pred_steps, batch_size, mode='train'):
         return tf.estimator.inputs.numpy_input_fn(
             x=processed_features,
             y=labels,
-            batch_size=batch_size
+            batch_size=batch_size,
+            shuffle=False
         )
     elif mode == 'test':
         return tf.estimator.inputs.numpy_input_fn(
             x=processed_features,
-            batch_size=batch_size
+            batch_size=batch_size,
+            shuffle=False
         )
 
 
