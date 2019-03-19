@@ -120,7 +120,7 @@ def cnn_dynamical(time_segs, edge_type, params, training=False):
                             name='node_decoding_MLP')
 
     next_state = tf.layers.dense(node_state, ndims, name='linear')
-    print(next_state.shape)
+
     return next_state
 
 
@@ -145,7 +145,7 @@ def dynamical_multisteps(features, params, pred_steps, training=False):
     else:
         edge_type = None
 
-    def one_step(i, time_series_stack):
+    def one_step(i, time_segs):
         with tf.name_scope(scope.original_name_scope):
             prev_step = time_segs[:, :, -1:, :]
             next_state = prev_step + cnn_dynamical(
