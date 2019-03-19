@@ -21,12 +21,7 @@ def model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    n_conv_layers = len(params['cnn']['filters'])
-    expected_time_series = gnn.utils.stack_time_series(features['time_series'][:, 2*n_conv_layers+1:, :, :],
-                                                       params['pred_steps'])
-
-    loss = tf.losses.mean_squared_error(expected_time_series,
-                                        pred_stack[:, :-params['pred_steps'], :, :, :])
+    loss = tf.losses.mean_squared_error(labels, pred_stack)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         learning_rate = tf.train.exponential_decay(
@@ -50,11 +45,41 @@ def model_fn(features, labels, mode, params):
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
+def input_fn(features, seg_len, pred_steps, batch_size, mode='train'):
+    time_series = features['time_series']
+    num_sims, time_steps, num_agents, ndims = time_series.shape
+    # Shape [num_sims, time_steps, num_agents, ndims]
+    time_series_stack = gnn.utils.stack_time_series(time_series[:, :-pred_steps, :, :],
+                                                    seg_len)
+    # Shape [num_sims, time_steps-seg_len-pred_steps+1, seg_len, num_agents, ndims]
+    expected_time_series_stack = gnn.utils.stack_time_series(time_series[:, seg_len:, :, :],
+                                                             pred_steps)
+    # Shape [num_sims, time_steps-seg_len-pred_steps+1, pred_steps, num_agents, ndims]
+    assert time_series_stack.shape[:2] == expected_time_series_stack.shape[:2]
+
+    time_segs = time_series_stack.reshape([-1, seg_len, num_agents, ndims])
+    expected_time_segs = expected_time_series_stack.reshape([-1, pred_steps, num_agents, ndims])
+    print('time_segs shape {}'.format(time_segs.shape))
+    processed_features = {'time_series': time_segs}
+    if 'edge_type' in features:
+        processed_features['edge_type'] = features['edge_type']
+    labels = expected_time_segs
+
+    ds = tf.data.Dataset.from_tensor_slices((processed_features, labels))
+
+    if mode == 'train':
+        ds = ds.shuffle(num_sims).repeat().batch(batch_size)
+    else:
+        ds = ds.batch(batch_size)
+    return ds
+
+
 def main():
     with open(ARGS.config) as f:
         model_params = json.load(f)
 
     model_params['pred_steps'] = ARGS.pred_steps
+    seg_len = 2 * len(model_params['cnn']['filters']) + 1
 
     cnn_multistep_regressor = tf.estimator.Estimator(
         model_fn=model_fn,
@@ -73,12 +98,7 @@ def main():
                                    prefix='train')
             features = {'time_series': train_data}
 
-        train_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=features,
-            batch_size=ARGS.batch_size,
-            num_epochs=None,
-            shuffle=True
-        )
+        def train_input_fn(): return input_fn(features, seg_len, ARGS.pred_steps, ARGS.batch_size)
 
         cnn_multistep_regressor.train(input_fn=train_input_fn,
                                       steps=ARGS.train_steps)
@@ -96,12 +116,8 @@ def main():
                                    prefix='valid')
             features = {'time_series': valid_data}
 
-        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=features,
-            batch_size=ARGS.batch_size,
-            num_epochs=1,
-            shuffle=False
-        )
+        def eval_input_fn(): return input_fn(features, seg_len, ARGS.pred_steps, ARGS.batch_size, 'eval')
+
         eval_results = cnn_multistep_regressor.evaluate(input_fn=eval_input_fn)
 
         if not ARGS.verbose:
@@ -120,11 +136,8 @@ def main():
                                   prefix='test')
             features = {'time_series': test_data}
 
-        predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=features,
-            batch_size=ARGS.batch_size,
-            shuffle=False
-        )
+        def predict_input_fn(): return input_fn(features, seg_len, ARGS.pred_steps, ARGS.batch_size, 'test')
+
         prediction = cnn_multistep_regressor.predict(input_fn=predict_input_fn)
         prediction = np.array([pred['next_steps'] for pred in prediction])
         np.save(os.path.join(ARGS.log_dir, 'prediction_{}.npy'.format(
