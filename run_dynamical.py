@@ -104,12 +104,18 @@ def main():
         if model_params.get('edge_types', 0) > 1:
             train_data, train_edge = load_data(ARGS.data_dir, ARGS.data_transpose, edge=True,
                                                prefix='train')
+            if ARGS.data_size:
+                train_data, train_edge = train_data[:ARGS.data_size], train_edge[:ARGS.data_size]
+
             train_edge = gnn.utils.one_hot(train_edge, model_params['edge_types'], np.float32)
 
             features = {'time_series': train_data, 'edge_type': train_edge}
         else:
             train_data = load_data(ARGS.data_dir, ARGS.data_transpose, edge=False,
                                    prefix='train')
+            if ARGS.data_size:
+                train_data = train_data[:ARGS.data_size]
+
             features = {'time_series': train_data}
 
         train_input_fn = input_fn(features, seg_len, ARGS.pred_steps, ARGS.batch_size, 'train')
@@ -164,6 +170,8 @@ if __name__ == '__main__':
                         help='data directory')
     parser.add_argument('--data-transpose', type=int, nargs=4, default=None,
                         help='axes for data transposition')
+    parser.add_argument('--data-size', type=int, default=None,
+                        help='optional data size cap to use for training')
     parser.add_argument('--config', type=str,
                         help='model config file')
     parser.add_argument('--log-dir', type=str,
