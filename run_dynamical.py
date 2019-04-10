@@ -28,7 +28,7 @@ def model_fn(features, labels, mode, params):
             learning_rate=params['learning_rate'],
             global_step=tf.train.get_global_step(),
             decay_steps=100,
-            decay_rate=0.95,
+            decay_rate=0.99,
             staircase=True,
             name='learning_rate'
         )
