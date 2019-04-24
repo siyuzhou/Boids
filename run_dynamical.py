@@ -62,7 +62,11 @@ def input_fn(features, seg_len, pred_steps, batch_size, mode='train'):
 
     processed_features = {'time_series': time_segs}
     if 'edge_type' in features:
-        processed_features['edge_type'] = features['edge_type']
+        edge_type = features['edge_type']
+        nedges, ntypes = edge_type.shape[1:]
+        edge_type = np.stack([edge_type for _ in range(time_series_stack.shape[1])], axis=1)
+        edge_type = np.reshape(edge_type, [-1, nedges, ntypes])
+        processed_features['edge_type'] = edge_type
     labels = expected_time_segs
 
     if mode == 'train':
