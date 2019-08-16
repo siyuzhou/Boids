@@ -196,6 +196,10 @@ if __name__ == '__main__':
                         help='turn on test')
     ARGS = parser.parse_args()
 
+    ARGS.data_dir = os.path.expanduser(ARGS.data_dir)
+    ARGS.config = os.path.expanduser(ARGS.config)
+    ARGS.log_dir = os.path.expanduser(ARGS.log_dir)
+
     if ARGS.verbose:
         tf.logging.set_verbosity(tf.logging.INFO)
 
