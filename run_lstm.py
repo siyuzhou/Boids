@@ -58,8 +58,8 @@ def model_fn(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    expected_time_series = gnn.utils.stack_time_series(features[:, 1:, :, :],
-                                                       params['pred_steps'])
+    expected_time_series = gnn.utils.stack_time_series_tf(features[:, 1:, :, :],
+                                                          params['pred_steps'])
 
     loss = tf.losses.mean_squared_error(expected_time_series,
                                         pred_stack[:, :-params['pred_steps'], :, :, :])
@@ -169,6 +169,10 @@ if __name__ == '__main__':
     parser.add_argument('--test', action='store_true', default=False,
                         help='turn on test')
     ARGS = parser.parse_args()
+
+    ARGS.data_dir = os.path.expanduser(ARGS.data_dir)
+    ARGS.config = os.path.expanduser(ARGS.config)
+    ARGS.log_dir = os.path.expanduser(ARGS.log_dir)
 
     if ARGS.verbose:
         tf.logging.set_verbosity(tf.logging.INFO)
